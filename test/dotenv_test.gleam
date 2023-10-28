@@ -9,7 +9,6 @@ pub fn main() {
 
 pub fn load_default_test() {
   dotenv.load()
-  |> should.be_ok
 
   os.get_env("PORT")
   |> should.equal(Ok("9000"))

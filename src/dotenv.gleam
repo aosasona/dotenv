@@ -1,11 +1,22 @@
 import gleam/io
+import gleam/string
 import gleam/erlang/os
 import gleam/result.{try}
 import dotenv/internal/parser
 import simplifile
 
 pub type Opts {
-  Opts(path: String, debug: Bool, capitalize: Bool)
+  /// Customized options for loading the .env file
+  Opts(
+    /// The path to the .env file relative to the project root eg. .env and src/.env are two different things, .env points to the root of the project, src/.env points to the src folder in the root of the project
+    path: String,
+    /// Print debug information if something goes wrong
+    debug: Bool,
+    /// Force all keys to be uppercase
+    capitalize: Bool,
+  )
+
+  /// Default options for loading the .env file - see `default` constant
   Default
 }
 
@@ -13,31 +24,85 @@ pub opaque type DotEnv {
   DotEnv(path: String, debug: Bool, capitalize: Bool)
 }
 
-const default = DotEnv(path: ".env", debug: False, capitalize: False)
+pub const default = DotEnv(path: ".env", debug: True, capitalize: True)
 
-pub fn load() -> Result(Nil, String) {
+///
+/// Load the .env file at the default path (.env) and set the environment variables
+///
+/// Debug information will be printed to the console if something goes wrong and all keys will be capitalized
+///
+/// # Example
+///
+/// ```gleam
+/// import dotenv
+///
+/// pub fn main() {
+///   dotenv.load()
+/// }
+/// ```
+pub fn load() {
   load_with_opts(Default)
 }
 
-pub fn load_with_opts(opts: Opts) -> Result(Nil, String) {
+///
+/// Load the .env file at the specified path and set the environment variables
+///
+/// Debug information and key capitalization can be customized
+///
+/// # Example
+///
+/// ```gleam
+/// import dotenv
+///
+/// pub fn main() {
+///   dotenv.load_with_opts(dotenv.Opts(path: "src/.env", debug: False, capitalize: False))
+/// }
+/// ```
+pub fn load_with_opts(opts: Opts) {
   let dotenv = case opts {
     Opts(path, debug, capitalize) -> DotEnv(path, debug, capitalize)
     Default -> default
   }
 
+  dotenv
+  |> load_and_return_error
+  |> fn(r) {
+    case r {
+      Ok(_) -> Nil
+      Error(msg) -> {
+        case dotenv.debug {
+          True -> io.println_error(msg)
+          False -> Nil
+        }
+      }
+    }
+  }
+}
+
+fn load_and_return_error(dotenv: DotEnv) -> Result(Nil, String) {
   use content <- try(read_file(dotenv))
   use kv_pairs <- try(parser.parse(content))
 
-  recursively_set_environment_variables(kv_pairs)
+  dotenv
+  |> recursively_set_environment_variables(kv_pairs)
 
   Ok(Nil)
 }
 
-fn recursively_set_environment_variables(kv_pairs: parser.EnvPairs) {
+fn recursively_set_environment_variables(
+  config: DotEnv,
+  kv_pairs: parser.EnvPairs,
+) {
   case kv_pairs {
     [pair, ..rest] -> {
-      os.set_env(pair.0, pair.1)
-      recursively_set_environment_variables(rest)
+      os.set_env(
+        case config.capitalize {
+          True -> string.uppercase(pair.0)
+          False -> pair.0
+        },
+        pair.1,
+      )
+      recursively_set_environment_variables(config, rest)
     }
     [] -> Nil
   }
