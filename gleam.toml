@@ -9,8 +9,14 @@ licences = ["Apache-2.0"]
 repository = { type = "github", user = "aosasona", repo = "dotenv" }
 # links = [{ title = "Website", href = "https://gleam.run" }]
 
+internal_modules = [
+  "dotenv/internal/*"
+]
+
 [dependencies]
 gleam_stdlib = "~> 0.31"
+simplifile = "~> 0.1"
+gleam_erlang = "~> 0.22"
 
 [dev-dependencies]
 gleeunit = "~> 0.10"
