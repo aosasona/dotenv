@@ -2,7 +2,7 @@ import gleam/io
 import gleam/string
 import gleam/erlang/os
 import gleam/result.{try}
-import dotenv/internal/parser
+import dot_env/internal/parser
 import simplifile
 
 pub type Opts {
@@ -34,10 +34,10 @@ pub const default = DotEnv(path: ".env", debug: True, capitalize: True)
 /// # Example
 ///
 /// ```gleam
-/// import dotenv
+/// import dot_env
 ///
 /// pub fn main() {
-///   dotenv.load()
+///   dot_env.load()
 /// }
 /// ```
 pub fn load() {
@@ -52,10 +52,10 @@ pub fn load() {
 /// # Example
 ///
 /// ```gleam
-/// import dotenv
+/// import dot_env
 ///
 /// pub fn main() {
-///   dotenv.load_with_opts(dotenv.Opts(path: "src/.env", debug: False, capitalize: False))
+///   dot_env.load_with_opts(dot_env.Opts(path: "src/.env", debug: False, capitalize: False))
 /// }
 /// ```
 pub fn load_with_opts(opts: Opts) {

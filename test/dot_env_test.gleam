@@ -1,4 +1,4 @@
-import dotenv.{Opts}
+import dot_env.{Opts}
 import gleam/erlang/os
 import gleeunit
 import gleeunit/should
@@ -8,7 +8,7 @@ pub fn main() {
 }
 
 pub fn load_default_test() {
-  dotenv.load()
+  dot_env.load()
 
   os.get_env("PORT")
   |> should.equal(Ok("9000"))
@@ -27,7 +27,11 @@ pub fn load_default_test() {
 }
 
 pub fn load_normal_test() {
-  dotenv.load_with_opts(Opts(path: ".env.normal", debug: True, capitalize: True))
+  dot_env.load_with_opts(Opts(
+    path: ".env.normal",
+    debug: True,
+    capitalize: True,
+  ))
 
   os.get_env("BASIC")
   |> should.equal(Ok("basic"))
@@ -129,7 +133,7 @@ pub fn load_normal_test() {
 }
 
 pub fn load_multiline_test() {
-  dotenv.load_with_opts(Opts(
+  dot_env.load_with_opts(Opts(
     path: ".env.multiline",
     debug: True,
     capitalize: True,
