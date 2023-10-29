@@ -104,6 +104,15 @@ fn recursively_set_environment_variables(
       )
       recursively_set_environment_variables(config, rest)
     }
+    [pair] -> {
+      os.set_env(
+        case config.capitalize {
+          True -> string.uppercase(pair.0)
+          False -> pair.0
+        },
+        pair.1,
+      )
+    }
     [] -> Nil
   }
 }
