@@ -1,5 +1,5 @@
 import dot_env.{Opts}
-import gleam/erlang/os
+import dot_env/env
 import gleeunit
 import gleeunit/should
 
@@ -10,19 +10,19 @@ pub fn main() {
 pub fn load_default_test() {
   dot_env.load()
 
-  os.get_env("PORT")
+  env.get("PORT")
   |> should.equal(Ok("9000"))
 
-  os.get_env("APP_NAME")
+  env.get("APP_NAME")
   |> should.equal(Ok("app"))
 
-  os.get_env("APP_ENV")
+  env.get("APP_ENV")
   |> should.equal(Ok("local"))
 
-  os.get_env("APP_KEY")
+  env.get("APP_KEY")
   |> should.equal(Ok("base-64:0"))
 
-  os.get_env("APP_DEBUG")
+  env.get("APP_DEBUG")
   |> should.equal(Ok("true"))
 }
 
@@ -33,102 +33,102 @@ pub fn load_normal_test() {
     capitalize: True,
   ))
 
-  os.get_env("BASIC")
+  env.get("BASIC")
   |> should.equal(Ok("basic"))
 
-  os.get_env("AFTER_LINE")
+  env.get("AFTER_LINE")
   |> should.equal(Ok("after_line"))
 
-  os.get_env("EMPTY")
+  env.get("EMPTY")
   |> should.equal(Ok(""))
 
-  os.get_env("EMPTY_SINGLE_QUOTES")
+  env.get("EMPTY_SINGLE_QUOTES")
   |> should.equal(Ok(""))
 
-  os.get_env("EMPTY_DOUBLE_QUOTES")
+  env.get("EMPTY_DOUBLE_QUOTES")
   |> should.equal(Ok(""))
 
-  os.get_env("SINGLE_QUOTES")
+  env.get("SINGLE_QUOTES")
   |> should.equal(Ok("single_quotes"))
 
-  os.get_env("SINGLE_QUOTES_SPACED")
+  env.get("SINGLE_QUOTES_SPACED")
   |> should.equal(Ok("    single quotes    "))
 
-  os.get_env("DOUBLE_QUOTES_INSIDE_SINGLE")
+  env.get("DOUBLE_QUOTES_INSIDE_SINGLE")
   |> should.equal(Ok("double \"quotes\" work inside single quotes"))
 
-  os.get_env("DOUBLE_QUOTES_WITH_NO_SPACE_BRACKET")
+  env.get("DOUBLE_QUOTES_WITH_NO_SPACE_BRACKET")
   |> should.equal(Ok("{ port: $MONGOLAB_PORT}"))
 
-  os.get_env("SINGLE_QUOTES_INSIDE_DOUBLE")
+  env.get("SINGLE_QUOTES_INSIDE_DOUBLE")
   |> should.equal(Ok("single 'quotes' work inside double quotes"))
 
-  os.get_env("BACKTICKS_INSIDE_SINGLE")
+  env.get("BACKTICKS_INSIDE_SINGLE")
   |> should.equal(Ok("`backticks` work inside single quotes"))
 
-  os.get_env("BACKTICKS_INSIDE_DOUBLE")
+  env.get("BACKTICKS_INSIDE_DOUBLE")
   |> should.equal(Ok("`backticks` work inside double quotes"))
 
-  os.get_env("BACKTICKS")
+  env.get("BACKTICKS")
   |> should.equal(Ok("backticks"))
 
-  os.get_env("BACKTICKS_SPACED")
+  env.get("BACKTICKS_SPACED")
   |> should.equal(Ok("    backticks    "))
 
-  os.get_env("DOUBLE_QUOTES_INSIDE_BACKTICKS")
+  env.get("DOUBLE_QUOTES_INSIDE_BACKTICKS")
   |> should.equal(Ok("double \"quotes\" work inside backticks"))
 
-  os.get_env("SINGLE_QUOTES_INSIDE_BACKTICKS")
+  env.get("SINGLE_QUOTES_INSIDE_BACKTICKS")
   |> should.equal(Ok("single 'quotes' work inside backticks"))
 
-  os.get_env("DOUBLE_AND_SINGLE_QUOTES_INSIDE_BACKTICKS")
+  env.get("DOUBLE_AND_SINGLE_QUOTES_INSIDE_BACKTICKS")
   |> should.equal(Ok(
     "double \"quotes\" and single 'quotes' work inside backticks",
   ))
 
-  os.get_env("EXPAND_NEWLINES")
+  env.get("EXPAND_NEWLINES")
   |> should.equal(Ok("expand\nnew\nlines"))
 
-  os.get_env("DONT_EXPAND_UNQUOTED")
+  env.get("DONT_EXPAND_UNQUOTED")
   |> should.equal(Ok("dontexpand\\nnewlines"))
 
-  os.get_env("DONT_EXPAND_SQUOTED")
+  env.get("DONT_EXPAND_SQUOTED")
   |> should.equal(Ok("dontexpand\\nnewlines"))
 
-  os.get_env("INLINE_COMMENTS")
+  env.get("INLINE_COMMENTS")
   |> should.equal(Ok("inline comments"))
 
-  os.get_env("INLINE_COMMENTS_SINGLE_QUOTES")
+  env.get("INLINE_COMMENTS_SINGLE_QUOTES")
   |> should.equal(Ok("inline comments outside of #singlequotes"))
 
-  os.get_env("INLINE_COMMENTS_DOUBLE_QUOTES")
+  env.get("INLINE_COMMENTS_DOUBLE_QUOTES")
   |> should.equal(Ok("inline comments outside of #doublequotes"))
 
-  os.get_env("INLINE_COMMENTS_BACKTICKS")
+  env.get("INLINE_COMMENTS_BACKTICKS")
   |> should.equal(Ok("inline comments outside of #backticks"))
 
-  os.get_env("INLINE_COMMENTS_SPACE")
+  env.get("INLINE_COMMENTS_SPACE")
   |> should.equal(Ok("inline comments start with a"))
 
-  os.get_env("EQUAL_SIGNS")
+  env.get("EQUAL_SIGNS")
   |> should.equal(Ok("equals=="))
 
-  os.get_env("RETAIN_INNER_QUOTES")
+  env.get("RETAIN_INNER_QUOTES")
   |> should.equal(Ok("{\"foo\": \"bar\"}"))
 
-  os.get_env("RETAIN_INNER_QUOTES_AS_STRING")
+  env.get("RETAIN_INNER_QUOTES_AS_STRING")
   |> should.equal(Ok("{\"foo\": \"bar\"}"))
 
-  os.get_env("RETAIN_INNER_QUOTES_AS_BACKTICKS")
+  env.get("RETAIN_INNER_QUOTES_AS_BACKTICKS")
   |> should.equal(Ok("{\"foo\": \"bar's\"}"))
 
-  os.get_env("TRIM_SPACE_FROM_UNQUOTED")
+  env.get("TRIM_SPACE_FROM_UNQUOTED")
   |> should.equal(Ok("some spaced out string"))
 
-  os.get_env("USERNAME")
+  env.get("USERNAME")
   |> should.equal(Ok("therealnerdybeast@example.tld"))
 
-  os.get_env("SPACED_KEY")
+  env.get("SPACED_KEY")
   |> should.equal(Ok("parsed"))
 }
 
@@ -139,60 +139,60 @@ pub fn load_multiline_test() {
     capitalize: True,
   ))
 
-  os.get_env("BASIC")
+  env.get("BASIC")
   |> should.equal(Ok("basic"))
 
-  os.get_env("AFTER_LINE")
+  env.get("AFTER_LINE")
   |> should.equal(Ok("after_line"))
 
-  os.get_env("EMPTY")
+  env.get("EMPTY")
   |> should.equal(Ok(""))
 
-  os.get_env("SINGLE_QUOTES")
+  env.get("SINGLE_QUOTES")
   |> should.equal(Ok("single_quotes"))
 
-  os.get_env("SINGLE_QUOTES_SPACED")
+  env.get("SINGLE_QUOTES_SPACED")
   |> should.equal(Ok("    single quotes    "))
 
-  os.get_env("DOUBLE_QUOTES")
+  env.get("DOUBLE_QUOTES")
   |> should.equal(Ok("double_quotes"))
 
-  os.get_env("DOUBLE_QUOTES_SPACED")
+  env.get("DOUBLE_QUOTES_SPACED")
   |> should.equal(Ok("    double quotes    "))
 
-  os.get_env("EXPAND_NEWLINES")
+  env.get("EXPAND_NEWLINES")
   |> should.equal(Ok("expand\nnew\nlines"))
 
-  os.get_env("DONT_EXPAND_UNQUOTED")
+  env.get("DONT_EXPAND_UNQUOTED")
   |> should.equal(Ok("dontexpand\\nnewlines"))
 
-  os.get_env("DONT_EXPAND_SQUOTED")
+  env.get("DONT_EXPAND_SQUOTED")
   |> should.equal(Ok("dontexpand\\nnewlines"))
 
-  os.get_env("EQUAL_SIGNS")
+  env.get("EQUAL_SIGNS")
   |> should.equal(Ok("equals=="))
 
-  os.get_env("RETAIN_INNER_QUOTES")
+  env.get("RETAIN_INNER_QUOTES")
   |> should.equal(Ok("{\"foo\": \"bar\"}"))
 
-  os.get_env("RETAIN_INNER_QUOTES_AS_STRING")
+  env.get("RETAIN_INNER_QUOTES_AS_STRING")
   |> should.equal(Ok("{\"foo\": \"bar\"}"))
 
-  os.get_env("TRIM_SPACE_FROM_UNQUOTED")
+  env.get("TRIM_SPACE_FROM_UNQUOTED")
   |> should.equal(Ok("some spaced out string"))
 
-  os.get_env("USERNAME")
+  env.get("USERNAME")
   |> should.equal(Ok("therealnerdybeast@example.tld"))
 
-  os.get_env("SPACED_KEY")
+  env.get("SPACED_KEY")
   |> should.equal(Ok("parsed"))
 
-  os.get_env("MULTI_DOUBLE_QUOTED")
+  env.get("MULTI_DOUBLE_QUOTED")
   |> should.equal(Ok("THIS\nIS\nA\nMULTILINE\nSTRING"))
 
-  // os.get_env("MULTI_SINGLE_QUOTED")
+  // env.get("MULTI_SINGLE_QUOTED")
   // |> should.equal(Ok("THIS\nIS\nA\nMULTILINE\nSTRING"))
 
-  os.get_env("MULTI_BACKTICKED")
+  env.get("MULTI_BACKTICKED")
   |> should.equal(Ok("THIS\nIS\nA\n\"MULTILINE'S\"\nSTRING"))
 }

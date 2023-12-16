@@ -1,5 +1,4 @@
 import gleam/bool
-import gleam/io
 import gleam/string
 import gleam/list
 import gleam/option.{Some}
