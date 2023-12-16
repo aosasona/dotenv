@@ -1,8 +1,8 @@
 import gleam/io
 import gleam/string
-import gleam/erlang/os
 import gleam/result.{try}
 import dot_env/internal/parser
+import dot_env/env
 import simplifile
 
 pub type Opts {
@@ -94,8 +94,18 @@ fn recursively_set_environment_variables(
   kv_pairs: parser.EnvPairs,
 ) {
   case kv_pairs {
+    [] -> Nil
+    [pair] -> {
+      env.set(
+        case config.capitalize {
+          True -> string.uppercase(pair.0)
+          False -> pair.0
+        },
+        pair.1,
+      )
+    }
     [pair, ..rest] -> {
-      os.set_env(
+      env.set(
         case config.capitalize {
           True -> string.uppercase(pair.0)
           False -> pair.0
@@ -104,16 +114,6 @@ fn recursively_set_environment_variables(
       )
       recursively_set_environment_variables(config, rest)
     }
-    [pair] -> {
-      os.set_env(
-        case config.capitalize {
-          True -> string.uppercase(pair.0)
-          False -> pair.0
-        },
-        pair.1,
-      )
-    }
-    [] -> Nil
   }
 }
 
