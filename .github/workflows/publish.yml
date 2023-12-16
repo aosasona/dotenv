@@ -15,4 +15,4 @@ jobs:
           otp-version: "26.0.2"
           gleam-version: "0.32.4"
           rebar3-version: "3"
-      - run: gleam publish
+      - run: gleam publish --yes
