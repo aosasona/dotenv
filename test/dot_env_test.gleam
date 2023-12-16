@@ -7,6 +7,19 @@ pub fn main() {
   gleeunit.main()
 }
 
+pub fn get_test() {
+  dot_env.load()
+
+  env.get_or("UNDEFINED_KEY", "default")
+  |> should.equal("default")
+
+  env.get_int("PORT")
+  |> should.equal(Ok(9000))
+
+  env.get_bool("APP_DEBUG")
+  |> should.equal(Ok(True))
+}
+
 pub fn load_default_test() {
   dot_env.load()
 
