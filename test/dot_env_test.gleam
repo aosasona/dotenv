@@ -40,10 +40,7 @@ pub fn load_default_test() {
 }
 
 pub fn load_normal_test() {
-  dot_env.load_with_opts(Opts(
-    path: ".env.normal",
-    debug: True,
-    capitalize: True,
+  dot_env.load_with_opts(Opts(path: ".env.normal", debug: True, capitalize: True,
   ))
 
   env.get("BASIC")
@@ -203,6 +200,7 @@ pub fn load_multiline_test() {
   env.get("MULTI_DOUBLE_QUOTED")
   |> should.equal(Ok("THIS\nIS\nA\nMULTILINE\nSTRING"))
 
+  // Currently failing i.e. not supported
   // env.get("MULTI_SINGLE_QUOTED")
   // |> should.equal(Ok("THIS\nIS\nA\nMULTILINE\nSTRING"))
 
