@@ -133,9 +133,7 @@ fn replace(
   with with: String,
 ) -> String {
   case
-    regex.compile(
-      regex,
-      regex.Options(case_insensitive: True, multi_line: True),
+    regex.compile(regex, regex.Options(case_insensitive: True, multi_line: True),
     )
   {
     Ok(re) ->

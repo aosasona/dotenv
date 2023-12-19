@@ -124,7 +124,9 @@ fn read_file(dotenv: DotEnv) -> Result(String, String) {
         Ok(contents) -> Ok(contents)
         Error(_) -> {
           let msg =
-            "Unable to read file at `" <> dotenv.path <> "`, ensure the file exists and is readable"
+            "Unable to read file at `"
+            <> dotenv.path
+            <> "`, ensure the file exists and is readable"
           io.println(msg)
           Error(msg)
         }
