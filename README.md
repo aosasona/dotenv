@@ -25,7 +25,7 @@ import gleam/io
 
 pub fn main() {
     dot_env.load_with_opts(dot_env.Opts(path: "path/to/.env", debug: False, capitalize: False))
-    // or `dot_env.load()` to load it the `.env` file in the root path
+    // or `dot_env.load()` to load the `.env` file in the root path
 
     case env.get("MY_ENV_VAR") {
         Ok(value) -> io.println(value)
@@ -37,8 +37,6 @@ pub fn main() {
 ```
 
 ## Installation
-
-If available on Hex this package can be added to your Gleam project:
 
 ```sh
 gleam add dot_env

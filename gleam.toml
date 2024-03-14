@@ -1,5 +1,5 @@
 name = "dot_env"
-version = "0.2.4"
+version = "0.3.0"
 
 description = "Load and use environment variables from files"
 licences = ["Apache-2.0"]
@@ -9,10 +9,10 @@ internal_modules = [
   "dot_env/internal/*"
 ]
 
-gleam = ">= 0.33.0"
+gleam = ">= 0.34.0"
 
 [dependencies]
-simplifile = "~> 1.0"
+simplifile = "~> 1.5"
 gleam_stdlib = "~> 0.34 or ~> 1.0"
 
 [dev-dependencies]
