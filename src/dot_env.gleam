@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/io
 import gleam/string
 import gleam/result.{try}
@@ -64,17 +65,15 @@ pub fn load_with_opts(opts: Opts) {
     Default -> default
   }
 
-  dotenv
-  |> load_and_return_error
-  |> fn(r) {
-    case r {
-      Ok(_) -> Nil
-      Error(msg) -> {
-        case dotenv.debug {
-          True -> io.println_error(msg)
-          False -> Nil
-        }
-      }
+  let state =
+    dotenv
+    |> load_and_return_error
+
+  case state {
+    Ok(_) -> Nil
+    Error(msg) -> {
+      use <- bool.guard(when: !dotenv.debug, return: Nil)
+      io.println_error(msg)
     }
   }
 }
@@ -89,49 +88,54 @@ fn load_and_return_error(dotenv: DotEnv) -> Result(Nil, String) {
   Ok(Nil)
 }
 
+fn set_env(config: DotEnv, pair: #(String, String)) {
+  let #(key, value) = pair
+
+  let key = {
+    use <- bool.guard(when: !config.capitalize, return: key)
+    string.uppercase(key)
+  }
+
+  env.set(key, value)
+}
+
 fn recursively_set_environment_variables(
   config: DotEnv,
-  kv_pairs: parser.EnvPairs,
+  kv_pairs: parser.KVPairs,
 ) {
   case kv_pairs {
     [] -> Nil
-    [pair] -> {
-      env.set(
-        case config.capitalize {
-          True -> string.uppercase(pair.0)
-          False -> pair.0
-        },
-        pair.1,
-      )
-    }
+    [pair] -> set_env(config, pair)
     [pair, ..rest] -> {
-      env.set(
-        case config.capitalize {
-          True -> string.uppercase(pair.0)
-          False -> pair.0
-        },
-        pair.1,
-      )
+      set_env(config, pair)
       recursively_set_environment_variables(config, rest)
     }
   }
 }
 
 fn read_file(dotenv: DotEnv) -> Result(String, String) {
-  case simplifile.is_file(dotenv.path) {
-    True -> {
-      case simplifile.read(dotenv.path) {
-        Ok(contents) -> Ok(contents)
-        Error(_) -> {
-          let msg =
-            "Unable to read file at `"
-            <> dotenv.path
-            <> "`, ensure the file exists and is readable"
-          io.println(msg)
-          Error(msg)
-        }
-      }
-    }
-    False -> Error("Specified file `" <> dotenv.path <> "` does not exist")
-  }
+  use is_file <- result.try(
+    simplifile.verify_is_file(dotenv.path)
+    |> result.map_error(with: fn(_) {
+      "Failed to access file, ensure the file exists and is a readable file"
+    }),
+  )
+
+  use <- bool.guard(
+    when: !is_file,
+    return: Error("Specified file does not exist"),
+  )
+
+  use contents <- result.try(
+    simplifile.read(dotenv.path)
+    |> result.map_error(with: fn(_) {
+      let msg =
+        "Unable to read file at `"
+        <> dotenv.path
+        <> "`, ensure the file exists and is readable"
+      msg
+    }),
+  )
+
+  Ok(contents)
 }

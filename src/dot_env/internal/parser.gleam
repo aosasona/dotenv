@@ -8,10 +8,10 @@ import gleam/result.{try}
 
 const line_regex = "(?:^|^)\\s*(?:export\\s+)?([\\w.-]+)(?:\\s*=\\s*?|:\\s+?)(\\s*'(?:\\\\'|[^'])*'|\\s*\"(?:\\\\\"|[^\"])*\"|\\s*`(?:\\\\`|[^`])*`|[^#\\r\\n]+)?\\s*(?:#.*)?(?:$|$)"
 
-pub type EnvPairs =
+pub type KVPairs =
   List(#(String, String))
 
-pub fn parse(text: String) -> Result(EnvPairs, String) {
+pub fn parse(text: String) -> Result(KVPairs, String) {
   let lines = replace(text, "\r\n?", with: "\n")
   use env_map <- try(
     lines_to_list(lines)
@@ -25,27 +25,22 @@ pub fn parse(text: String) -> Result(EnvPairs, String) {
   Ok(env_map)
 }
 
-fn to_pairs(raw_list: List(String), state: EnvPairs) -> Result(EnvPairs, String) {
+fn to_pairs(raw_list: List(String), state: KVPairs) -> Result(KVPairs, String) {
   case raw_list {
     [key, value, ..rest] -> {
+      // NOTE: coverting this to a `use <- bool.guard(when: !is_valid_key(key), return: to_pairs(rest, state))` causes a test timeout
       case is_valid_key(key) {
         True -> {
-          case normalize_value(value) {
-            Ok(normalized_value) ->
-              to_pairs(rest, list.concat([state, [#(key, normalized_value)]]))
-            Error(e) -> Error(e)
-          }
+          use normalized_value <- try(normalize_value(value))
+          to_pairs(rest, list.concat([state, [#(key, normalized_value)]]))
         }
         False -> to_pairs(rest, state)
       }
     }
     [key] -> {
-      case is_valid_key(key) {
-        True -> Ok(list.concat([state, [#(key, "")]]))
-        False -> Ok(state)
-      }
+      use <- bool.guard(when: !is_valid_key(key), return: Ok(state))
+      Ok(list.concat([state, [#(key, "")]]))
     }
-    // MAYBE: there might be other patterns that are valid, but I'm not sure what they are at the moment
     [] | _ -> Ok(state)
   }
 }
@@ -60,11 +55,9 @@ fn normalize_value(value: String) -> Result(String, String) {
   )
 
   // replace escaped new lines with actual new lines if it original value was quoted with double quotes
-  case has_double_quotes {
-    True -> expand_new_lines(value)
-    False -> value
-  }
-  |> Ok
+  use <- bool.guard(when: !has_double_quotes, return: Ok(value))
+
+  Ok(expand_new_lines(value))
 }
 
 fn expand_new_lines(value: String) -> String {
