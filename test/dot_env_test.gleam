@@ -20,6 +20,21 @@ pub fn get_test() {
   |> should.equal(Ok(True))
 }
 
+pub fn load_missing_env_file_test() {
+  env.set("PORT", "9000")
+
+  // This should not fail or crash
+  dot_env.load_with_opts(Opts(
+    path: ".definitely_not_a_real_file",
+    debug: True,
+    capitalize: True,
+    ignore_missing_file: True,
+  ))
+
+  env.get("PORT")
+  |> should.equal(Ok("9000"))
+}
+
 pub fn load_default_test() {
   dot_env.load()
 
@@ -44,6 +59,7 @@ pub fn load_normal_test() {
     path: ".env.normal",
     debug: True,
     capitalize: True,
+    ignore_missing_file: False,
   ))
 
   env.get("BASIC")
@@ -150,6 +166,7 @@ pub fn load_multiline_test() {
     path: ".env.multiline",
     debug: True,
     capitalize: True,
+    ignore_missing_file: False,
   ))
 
   env.get("BASIC")
