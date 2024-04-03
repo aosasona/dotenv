@@ -15,6 +15,8 @@ pub type Opts {
     debug: Bool,
     /// Force all keys to be uppercase
     capitalize: Bool,
+    /// In case the file is missing, ignore the error and continue
+    ignore_missing_file: Bool,
   )
 
   /// Default options for loading the .env file - see `default` constant
@@ -22,10 +24,15 @@ pub type Opts {
 }
 
 pub opaque type DotEnv {
-  DotEnv(path: String, debug: Bool, capitalize: Bool)
+  DotEnv(path: String, debug: Bool, capitalize: Bool, ignore_missing_file: Bool)
 }
 
-pub const default = DotEnv(path: ".env", debug: True, capitalize: True)
+pub const default = DotEnv(
+  path: ".env",
+  debug: True,
+  capitalize: True,
+  ignore_missing_file: True,
+)
 
 ///
 /// Load the .env file at the default path (.env) and set the environment variables
@@ -61,7 +68,8 @@ pub fn load() {
 /// ```
 pub fn load_with_opts(opts: Opts) {
   let dotenv = case opts {
-    Opts(path, debug, capitalize) -> DotEnv(path, debug, capitalize)
+    Opts(path, debug, capitalize, ignore_missing_file) ->
+      DotEnv(path, debug, capitalize, ignore_missing_file)
     Default -> default
   }
 
@@ -79,13 +87,25 @@ pub fn load_with_opts(opts: Opts) {
 }
 
 fn load_and_return_error(dotenv: DotEnv) -> Result(Nil, String) {
-  use content <- try(read_file(dotenv))
+  use content <- try(
+    read_file(dotenv)
+    |> handle_file_result(dotenv.ignore_missing_file),
+  )
+
   use kv_pairs <- try(parser.parse(content))
 
   dotenv
   |> recursively_set_environment_variables(kv_pairs)
 
   Ok(Nil)
+}
+
+fn handle_file_result(
+  res: Result(String, String),
+  ignore_error: Bool,
+) -> Result(String, String) {
+  use <- bool.guard(when: result.is_error(res) && ignore_error, return: Ok(""))
+  res
 }
 
 fn set_env(config: DotEnv, pair: #(String, String)) {
@@ -123,7 +143,7 @@ fn read_file(dotenv: DotEnv) -> Result(String, String) {
 
   use <- bool.guard(
     when: !is_file,
-    return: Error("Specified file does not exist"),
+    return: Error("Specified file at `" <> dotenv.path <> "` does not exist"),
   )
 
   use contents <- result.try(
