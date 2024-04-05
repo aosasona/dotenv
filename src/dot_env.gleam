@@ -34,7 +34,6 @@ pub const default = DotEnv(
   ignore_missing_file: True,
 )
 
-///
 /// Load the .env file at the default path (.env) and set the environment variables
 ///
 /// Debug information will be printed to the console if something goes wrong and all keys will be capitalized
@@ -52,7 +51,6 @@ pub fn load() {
   load_with_opts(Default)
 }
 
-///
 /// Load the .env file at the specified path and set the environment variables
 ///
 /// Debug information and key capitalization can be customized

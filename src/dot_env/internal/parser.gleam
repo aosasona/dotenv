@@ -1,6 +1,6 @@
-import gleam/string
 import gleam/list
 import gleam/result.{try}
+import gleam/string
 
 pub type KVPair =
   #(String, String)
@@ -121,3 +121,4 @@ fn join(strings: List(String)) -> String {
   |> list.reverse
   |> string.join("")
 }
+
