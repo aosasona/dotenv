@@ -116,7 +116,14 @@ fn lines_to_list(text: String) -> List(String) {
     Ok(re) -> regex.split(with: re, content: text)
     Error(_) -> []
   }
-  |> list.filter(fn(line) { line != "\n" })
+  |> list.filter(fn(line) { line != "\n" && !is_comment(line) })
+}
+
+fn is_comment(line: String) -> Bool {
+  case string.trim(line) {
+    "#" <> _ -> True
+    _ -> False
+  }
 }
 
 // replace parts of string with a regex - the standard library doesn't have this yet
