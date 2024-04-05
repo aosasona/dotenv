@@ -1,175 +1,123 @@
-import gleam/bool
 import gleam/string
 import gleam/list
-import gleam/option.{Some}
-import gleam/queue.{type Queue}
-import gleam/regex
 import gleam/result.{try}
 
-const line_regex = "(?:^|^)\\s*(?:export\\s+)?([\\w.-]+)(?:\\s*=\\s*?|:\\s+?)(\\s*'(?:\\\\'|[^'])*'|\\s*\"(?:\\\\\"|[^\"])*\"|\\s*`(?:\\\\`|[^`])*`|[^#\\r\\n]+)?\\s*(?:#.*)?(?:$|$)"
+pub type KVPair =
+  #(String, String)
 
 pub type KVPairs =
-  List(#(String, String))
+  List(KVPair)
+
+type Chars =
+  List(String)
 
 pub fn parse(text: String) -> Result(KVPairs, String) {
-  let lines = replace(text, "\r\n?", with: "\n")
-  use env_map <- try(
-    lines_to_list(lines)
-    |> queue.from_list
-    |> pop_first_if_empty
-    |> pop_last_if_empty
-    |> queue.to_list
-    |> to_pairs([]),
-  )
-
-  Ok(env_map)
+  text
+  |> string.to_graphemes
+  |> parse_kvs([])
 }
 
-fn to_pairs(raw_list: List(String), state: KVPairs) -> Result(KVPairs, String) {
-  case raw_list {
-    [key, value, ..rest] -> {
-      // NOTE: coverting this to a `use <- bool.guard(when: !is_valid_key(key), return: to_pairs(rest, state))` causes a test timeout
-      case is_valid_key(key) {
-        True -> {
-          use normalized_value <- try(normalize_value(value))
-          to_pairs(rest, list.concat([state, [#(key, normalized_value)]]))
-        }
-        False -> to_pairs(rest, state)
-      }
+fn parse_kvs(text: Chars, acc: KVPairs) -> Result(KVPairs, String) {
+  case text {
+    [] -> Ok(list.reverse(acc))
+    ["\r", "\n", ..rest] | ["\n", ..rest] | [" ", ..rest] ->
+      parse_kvs(rest, acc)
+    ["#", ..rest] -> parse_comment(rest, fn(r) { parse_kvs(r, acc) })
+    ["e", "x", "p", "o", "r", "t", " ", ..rest] -> parse_kvs(rest, acc)
+    _ -> {
+      use #(pair, rest) <- try(parse_kv(text))
+      parse_kvs(rest, [pair, ..acc])
     }
-    [key] -> {
-      use <- bool.guard(when: !is_valid_key(key), return: Ok(state))
-      Ok(list.concat([state, [#(key, "")]]))
-    }
-    [] | _ -> Ok(state)
   }
 }
 
-fn normalize_value(value: String) -> Result(String, String) {
-  let has_double_quotes = string.starts_with(value, "\"")
-
-  use value <- try(
-    string.trim(value)
-    // extract whatever is inside the quotes
-    |> remove_surrounding_quotes,
-  )
-
-  // replace escaped new lines with actual new lines if it original value was quoted with double quotes
-  use <- bool.guard(when: !has_double_quotes, return: Ok(value))
-
-  Ok(expand_new_lines(value))
+fn parse_kv(text: Chars) -> Result(#(KVPair, Chars), String) {
+  use #(key, rest) <- try(parse_key(text, []))
+  use #(value, rest) <- try(parse_value(rest))
+  Ok(#(#(key, value), rest))
 }
 
-fn expand_new_lines(value: String) -> String {
-  string.replace(value, "\\n", with: "\n")
-  |> string.replace("\\r", with: "\r")
-}
-
-fn remove_surrounding_quotes(value: String) -> Result(String, String) {
-  case
-    regex.compile(
-      "^(['\"`])([\\s\\S]*)\\1$",
-      regex.Options(case_insensitive: True, multi_line: True),
-    )
-  {
-    Ok(re) -> {
-      case regex.scan(with: re, content: value) {
-        [match] -> extract_value_from_match(match)
-        [_, ..] -> Error("Multiple quotes found in value: " <> value)
-        [] -> Ok(value)
-      }
-    }
-
-    Error(_) ->
-      Error(
-        "Regex error at extract_within_quotes, this is a bug, please create an issue",
-      )
+fn parse_key(text: Chars, acc: Chars) -> Result(#(String, Chars), String) {
+  case text {
+    ["=", ..rest] -> Ok(#(string.trim(join(acc)), rest))
+    [c, ..rest] -> parse_key(rest, [c, ..acc])
+    [] -> Error("unexpected end of input")
   }
 }
 
-fn extract_value_from_match(match: regex.Match) -> Result(String, String) {
-  list.at(match.submatches, 1)
-  |> result.unwrap(Some(match.content))
-  |> option.unwrap("")
-  |> Ok
-}
-
-fn is_valid_key(key: String) -> Bool {
-  case
-    regex.compile(
-      "^[a-zA-Z_]+[a-zA-Z0-9_]*$",
-      regex.Options(case_insensitive: False, multi_line: True),
-    )
-  {
-    Ok(re) -> regex.check(with: re, content: key)
-    Error(_) -> False
+fn parse_value(text: Chars) -> Result(#(String, Chars), String) {
+  case text {
+    ["\n", ..rest] | ["\r", "\n", ..rest] -> Ok(#("", rest))
+    ["\"", ..rest] -> parse_value_double_quoted(rest, [])
+    ["'", ..rest] -> parse_value_single_quoted(rest, [])
+    ["`", ..rest] -> parse_value_backtick_quoted(rest, [])
+    ["#", ..rest] -> parse_comment(rest, fn(r) { parse_value(r) })
+    [c, ..rest] -> parse_value_unquoted(rest, [c])
+    [] -> Error("unexpected end of input")
   }
 }
 
-fn lines_to_list(text: String) -> List(String) {
-  case
-    regex.compile(
-      line_regex,
-      regex.Options(case_insensitive: True, multi_line: True),
-    )
-  {
-    Ok(re) -> regex.split(with: re, content: text)
-    Error(_) -> []
-  }
-  |> list.filter(fn(line) { line != "\n" && !is_comment(line) })
-}
-
-fn is_comment(line: String) -> Bool {
-  case string.trim(line) {
-    "#" <> _ -> True
-    _ -> False
+fn parse_value_unquoted(
+  text: Chars,
+  acc: Chars,
+) -> Result(#(String, Chars), String) {
+  case text {
+    ["\r", "\n", ..rest] | ["\n", ..rest] -> Ok(#(string.trim(join(acc)), rest))
+    ["#", ..rest] -> parse_comment(rest, fn(r) { parse_value_unquoted(r, acc) })
+    [c, ..rest] -> parse_value_unquoted(rest, [c, ..acc])
+    [] -> Error("unclosed double quote")
   }
 }
 
-// replace parts of string with a regex - the standard library doesn't have this yet
-fn replace(
-  string str: String,
-  pattern regex: String,
-  with with: String,
-) -> String {
-  case
-    regex.compile(
-      regex,
-      regex.Options(case_insensitive: True, multi_line: True),
-    )
-  {
-    Ok(re) ->
-      regex.split(with: re, content: str)
-      |> string.join(with)
-      |> string.trim
-    Error(_) -> str
+fn parse_value_double_quoted(
+  text: Chars,
+  acc: Chars,
+) -> Result(#(String, Chars), String) {
+  case text {
+    ["\"", ..rest] -> Ok(#(join(acc), rest))
+    ["\\", "\"" as c, ..rest] -> parse_value_double_quoted(rest, [c, ..acc])
+    ["\\", "n", ..rest] -> parse_value_double_quoted(rest, ["\n", ..acc])
+    [c, ..rest] -> parse_value_double_quoted(rest, [c, ..acc])
+    [] -> Error("unclosed double quote")
   }
 }
 
-fn pop_first_if_empty(items: Queue(String)) -> Queue(String) {
-  case queue.pop_front(items) {
-    Ok(#(first, _)) -> {
-      use <- bool.guard(when: first != "", return: items)
-
-      case queue.pop_front(items) {
-        Ok(#(_, rest)) -> rest
-        Error(_) -> items
-      }
-    }
-    Error(_) -> items
+fn parse_value_single_quoted(
+  text: Chars,
+  acc: Chars,
+) -> Result(#(String, Chars), String) {
+  case text {
+    ["'", ..rest] -> Ok(#(join(acc), rest))
+    ["\\", "'" as c, ..rest] -> parse_value_single_quoted(rest, [c, ..acc])
+    [c, ..rest] -> parse_value_single_quoted(rest, [c, ..acc])
+    [] -> Error("unclosed single quote")
   }
 }
 
-fn pop_last_if_empty(items: Queue(String)) -> Queue(String) {
-  case queue.pop_back(items) {
-    Ok(#(last, _)) -> {
-      use <- bool.guard(when: last != "", return: items)
-
-      case queue.pop_back(items) {
-        Ok(#(_, rest)) -> rest
-        Error(_) -> items
-      }
-    }
-    Error(_) -> items
+fn parse_value_backtick_quoted(
+  text: Chars,
+  acc: Chars,
+) -> Result(#(String, Chars), String) {
+  case text {
+    ["`", ..rest] -> Ok(#(join(acc), rest))
+    ["\\", "`" as char, ..rest] ->
+      parse_value_backtick_quoted(rest, [char, ..acc])
+    [char, ..rest] -> parse_value_backtick_quoted(rest, [char, ..acc])
+    [] -> Error("unclosed backtick quote")
   }
+}
+
+fn parse_comment(text: Chars, next: fn(Chars) -> a) -> a {
+  case text {
+    ["\r", "\n", ..] -> next(text)
+    ["\n", ..] -> next(text)
+    [_, ..rest] -> parse_comment(rest, next)
+    [] -> next(text)
+  }
+}
+
+fn join(strings: List(String)) -> String {
+  strings
+  |> list.reverse
+  |> string.join("")
 }
