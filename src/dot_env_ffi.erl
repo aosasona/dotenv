@@ -5,7 +5,7 @@
 get_env(Name) ->
   case os:getenv(binary_to_list(Name)) of
     false ->
-      {error, nil};
+      {error, list_to_binary(io_lib:format("key ~s is not set", [Name]))};
     Value ->
       {ok, list_to_binary(Value)}
   end.
