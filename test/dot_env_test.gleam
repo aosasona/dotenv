@@ -159,6 +159,9 @@ pub fn load_normal_test() {
 
   env.get("SPACED_KEY")
   |> should.equal(Ok("parsed"))
+
+  env.get("DOESNT_EXIST")
+  |> should.equal(Error("key DOESNT_EXIST is not set"))
 }
 
 pub fn load_multiline_test() {
