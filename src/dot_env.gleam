@@ -1,9 +1,9 @@
+import dot_env/env
+import dot_env/internal/parser
 import gleam/bool
 import gleam/io
-import gleam/string
 import gleam/result.{try}
-import dot_env/internal/parser
-import dot_env/env
+import gleam/string
 import simplifile
 
 pub type Opts {
@@ -147,11 +147,9 @@ fn read_file(dotenv: DotEnv) -> Result(String, String) {
   use contents <- result.try(
     simplifile.read(dotenv.path)
     |> result.map_error(with: fn(_) {
-      let msg =
-        "Unable to read file at `"
-        <> dotenv.path
-        <> "`, ensure the file exists and is readable"
-      msg
+      "Unable to read file at `"
+      <> dotenv.path
+      <> "`, ensure the file exists and is readable"
     }),
   )
 
