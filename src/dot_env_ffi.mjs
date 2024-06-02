@@ -1,51 +1,88 @@
-import { Ok as GleamOk, Error as GleamError } from "./gleam.mjs";
+import { Error as GleamError, Ok as GleamOk } from "./gleam.mjs";
 
-// TODO: support bun and deno
+const Nil = undefined;
+
+/**
+ * @param {string} key
+ * @param {string} value
+ * @returns {GleamError | GleamOk}
+ */
 export function set_env(key, value) {
-	const runtime = get_runtime();
-	if (runtime == "browser")
-		return GleamError("dotenv is not supported in browser");
-	if (runtime == "unknown") return GleamError("unknown runtime");
+  // Ensure we can even run in this runtime
+  const runtime = get_runtime();
+  if (runtime == "unknown") {
+    return GleamError("unknown runtime");
+  }
 
-	if (!process.env) {
-		console.error("process.env is not available");
-		return Nil;
-	}
+  // Ensure we have a non-empty key and a non-null/empty value
+  key = key?.trim();
+  if (!key) return GleamError("key is required");
+  if (value === undefined || value === null) {
+    // A blank string counts as a value in this case, useful for situations where the user explicitly wants to override an env var with an empty string
+    return GleamError("value is required for key: " + key);
+  }
 
-	process.env[key] = value;
-	return Nil;
+  if (runtime == "node" || runtime == "bun") {
+    process.env[key?.trim()] = value;
+  } else if (runtime == "deno") {
+    Deno.env.set(key?.trim(), value);
+  } else {
+    return GleamError("unsupported runtime: " + runtime);
+  }
+
+  return GleamOk(Nil);
 }
 
+/**
+ * @param {string} key
+ * @param {string} value
+ * @returns {GleamError | GleamOk}
+ */
 export function get_env(key) {
-	if (!process.env) {
-		console.error("process.env is not available");
-		return new GleamError("process.env is not available");
-	}
+  const runtime = get_runtime();
+  if (runtime == "unknown") {
+    return GleamError("unknown runtime");
+  }
 
-	const value = process.env[key];
-	if (!value) {
-		return new GleamError(`key \`${key}\` is not set`);
-	}
+  key = key?.trim();
+  if (!key) return GleamError("key is required");
 
-	return new GleamOk(value);
+  let value = "";
+
+  switch (runtime) {
+    case "node":
+    case "bun":
+      value = process.env[key];
+      break;
+    case "deno":
+      value = Deno.env.get(key);
+      break;
+    default:
+      return GleamError("unsupported runtime: " + runtime);
+  }
+
+  return new GleamOk(value);
 }
 
+/**
+ * @returns {"node" | "deno" | "bun" | "browser" | "unknown"}
+ */
 function get_runtime() {
-	if (typeof process !== "undefined") {
-		return "node";
-	}
+  if (typeof process !== "undefined") {
+    return "node";
+  }
 
-	if (typeof Deno !== "undefined") {
-		return "deno";
-	}
+  if (typeof Deno !== "undefined") {
+    return "deno";
+  }
 
-	if (typeof Bun !== "undefined") {
-		return "bun";
-	}
+  if (typeof Bun !== "undefined") {
+    return "bun";
+  }
 
-	if (typeof window !== "undefined") {
-		return "browser";
-	}
+  if (typeof window !== "undefined") {
+    return "browser";
+  }
 
-	return "unknown";
+  return "unknown";
 }
