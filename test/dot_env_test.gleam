@@ -8,7 +8,13 @@ pub fn main() {
 }
 
 pub fn get_test() {
-  dot_env.load()
+  dot_env.load_default()
+
+  env.get("DEFINITELY_NOT_A_REAL_KEY")
+  |> should.be_error
+
+  env.get("PORT")
+  |> should.equal(Ok("9000"))
 
   env.get_or("UNDEFINED_KEY", "default")
   |> should.equal("default")
@@ -18,10 +24,22 @@ pub fn get_test() {
 
   env.get_bool("APP_DEBUG")
   |> should.equal(Ok(True))
+
+  env.get_int_or("PORT", 3000)
+  |> should.equal(9000)
+
+  env.get_bool_or("APP_DEBUG", False)
+  |> should.equal(True)
+
+  env.get_bool("PORT")
+  |> should.be_error
+
+  env.get_int("APP_DEBUG")
+  |> should.be_error
 }
 
 pub fn load_missing_env_file_test() {
-  env.set("PORT", "9000")
+  let assert Ok(Nil) = env.set("PORT", "9000")
 
   // This should not fail or crash
   dot_env.load_with_opts(Opts(
@@ -36,7 +54,7 @@ pub fn load_missing_env_file_test() {
 }
 
 pub fn load_default_test() {
-  dot_env.load()
+  dot_env.load_default()
 
   env.get("PORT")
   |> should.equal(Ok("9000"))
@@ -223,9 +241,8 @@ pub fn load_multiline_test() {
   env.get("MULTI_DOUBLE_QUOTED")
   |> should.equal(Ok("THIS\nIS\nA\nMULTILINE\nSTRING"))
 
-  // Currently failing i.e. not supported
-  // env.get("MULTI_SINGLE_QUOTED")
-  // |> should.equal(Ok("THIS\nIS\nA\nMULTILINE\nSTRING"))
+  env.get("MULTI_SINGLE_QUOTED")
+  |> should.equal(Ok("THIS\nIS\nA\nMULTILINE\nSTRING"))
 
   env.get("MULTI_BACKTICKED")
   |> should.equal(Ok("THIS\nIS\nA\n\"MULTILINE'S\"\nSTRING"))

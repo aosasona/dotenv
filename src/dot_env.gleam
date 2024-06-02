@@ -34,6 +34,66 @@ pub const default = DotEnv(
   ignore_missing_file: True,
 )
 
+/// Create a default DotEnv instance. This is designed to use used as the starting point for using any of the builder methods
+pub fn new() -> DotEnv {
+  default
+}
+
+/// Create a new DotEnv instance with the specified path
+pub fn new_with_path(path: String) -> DotEnv {
+  DotEnv(..default, path: path)
+}
+
+/// Set whether to print debug information in the current DotEnv instance
+pub fn set_debug(instance: DotEnv, debug: Bool) -> DotEnv {
+  DotEnv(..instance, debug: debug)
+}
+
+/// Set whether to capitalize all keys in the current DotEnv instance
+pub fn set_capitalize(instance: DotEnv, capitalize: Bool) -> DotEnv {
+  DotEnv(..instance, capitalize: capitalize)
+}
+
+/// Set whether to ignore missing file errors in the current DotEnv instance
+pub fn set_ignore_missing_file(
+  instance: DotEnv,
+  ignore_missing_file: Bool,
+) -> DotEnv {
+  DotEnv(..instance, ignore_missing_file: ignore_missing_file)
+}
+
+/// Set the path to the .env file in the current DotEnv instance
+pub fn set_path(instance: DotEnv, path: String) -> DotEnv {
+  DotEnv(..instance, path: path)
+}
+
+/// Get the path to the .env file in the current DotEnv instance
+pub fn path(instance: DotEnv) -> String {
+  instance.path
+}
+
+/// Load the .env file using the current DotEnv instance and set the environment variables
+///
+/// # Example
+///
+/// ```gleam
+/// import dot_env as dot
+///
+/// pub fn main() {
+///   dot.new()
+///   |> dot.set_path("src/.env")
+///   |> dot.set_debug(False)
+///   |> dot.load
+/// }
+pub fn load(dotenv: DotEnv) -> Nil {
+  load_with_opts(Opts(
+    path: dotenv.path,
+    debug: dotenv.debug,
+    capitalize: dotenv.capitalize,
+    ignore_missing_file: dotenv.ignore_missing_file,
+  ))
+}
+
 /// Load the .env file at the default path (.env) and set the environment variables
 ///
 /// Debug information will be printed to the console if something goes wrong and all keys will be capitalized
@@ -44,10 +104,10 @@ pub const default = DotEnv(
 /// import dot_env
 ///
 /// pub fn main() {
-///   dot_env.load()
+///   dot_env.load_default()
 /// }
 /// ```
-pub fn load() {
+pub fn load_default() -> Nil {
   load_with_opts(Default)
 }
 
