@@ -188,7 +188,7 @@ fn recursively_set_environment_variables(
 
 fn read_file(dotenv: DotEnv) -> Result(String, String) {
   use is_file <- result.try(
-    simplifile.verify_is_file(dotenv.path)
+    simplifile.is_file(dotenv.path)
     |> result.map_error(with: fn(_) {
       "Failed to access file, ensure the file exists and is a readable file"
     }),
