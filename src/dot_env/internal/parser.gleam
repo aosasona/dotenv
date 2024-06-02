@@ -12,9 +12,7 @@ type Chars =
   List(String)
 
 pub fn parse(text: String) -> Result(KVPairs, String) {
-  text
-  |> string.to_graphemes
-  |> parse_kvs([])
+  text |> string.to_graphemes |> parse_kvs([])
 }
 
 fn parse_kvs(text: Chars, acc: KVPairs) -> Result(KVPairs, String) {
@@ -117,8 +115,5 @@ fn parse_comment(text: Chars, next: fn(Chars) -> a) -> a {
 }
 
 fn join(strings: List(String)) -> String {
-  strings
-  |> list.reverse
-  |> string.join("")
+  strings |> list.reverse |> string.join("")
 }
-
