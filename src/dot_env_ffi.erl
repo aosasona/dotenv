@@ -12,4 +12,4 @@ get_env(Name) ->
 
 set_env(Name, Value) ->
   os:putenv(binary_to_list(Name), binary_to_list(Value)),
-  nil.
+  {ok, nil}.
