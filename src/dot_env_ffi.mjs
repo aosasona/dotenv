@@ -11,7 +11,7 @@ export function set_env(key, value) {
   // Ensure we can even run in this runtime
   const runtime = get_runtime();
   if (runtime == "unknown") {
-    return GleamError("unknown runtime");
+    return new GleamError("unknown runtime");
   }
 
   // Ensure we have a non-empty key and a non-null/empty value
@@ -19,7 +19,7 @@ export function set_env(key, value) {
   if (!key) return GleamError("key is required");
   if (value === undefined || value === null) {
     // A blank string counts as a value in this case, useful for situations where the user explicitly wants to override an env var with an empty string
-    return GleamError("value is required for key: " + key);
+    return new GleamError("value is required for key: " + key);
   }
 
   if (runtime == "node" || runtime == "bun") {
@@ -27,10 +27,10 @@ export function set_env(key, value) {
   } else if (runtime == "deno") {
     Deno.env.set(key?.trim(), value);
   } else {
-    return GleamError("unsupported runtime: " + runtime);
+    return new GleamError("unsupported runtime: " + runtime);
   }
 
-  return GleamOk(Nil);
+  return new GleamOk(Nil);
 }
 
 /**
@@ -41,24 +41,28 @@ export function set_env(key, value) {
 export function get_env(key) {
   const runtime = get_runtime();
   if (runtime == "unknown") {
-    return GleamError("unknown runtime");
+    return new GleamError("unknown runtime");
   }
 
   key = key?.trim();
-  if (!key) return GleamError("key is required");
+  if (!key) return new GleamError("key is required");
 
-  let value = "";
+  let value = Nil;
 
   switch (runtime) {
     case "node":
     case "bun":
-      value = process.env[key];
+      value = process?.env[key];
       break;
     case "deno":
       value = Deno.env.get(key);
       break;
     default:
-      return GleamError("unsupported runtime: " + runtime);
+      return new GleamError("unsupported runtime: " + runtime);
+  }
+
+  if (value == Nil || value === undefined) {
+    return new GleamError(Nil);
   }
 
   return new GleamOk(value);
