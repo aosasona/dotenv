@@ -131,9 +131,7 @@ pub fn load_with_opts(opts: Opts) {
     Default -> default
   }
 
-  let state =
-    dotenv
-    |> load_and_return_error
+  let state = dotenv |> load_and_return_error
 
   case state {
     Ok(_) -> Nil
@@ -154,8 +152,6 @@ fn load_and_return_error(dotenv: DotEnv) -> Result(Nil, String) {
 
   dotenv
   |> recursively_set_environment_variables(kv_pairs)
-
-  Ok(Nil)
 }
 
 fn handle_file_result(
@@ -166,26 +162,25 @@ fn handle_file_result(
   res
 }
 
-fn set_env(config: DotEnv, pair: #(String, String)) {
-  let #(key, value) = pair
-
+fn set_env(config: DotEnv, pair: #(String, String)) -> Result(Nil, String) {
   let key = {
-    use <- bool.guard(when: !config.capitalize, return: key)
-    string.uppercase(key)
+    use <- bool.guard(when: !config.capitalize, return: pair.0)
+    string.uppercase(pair.0)
   }
 
-  env.set(key, value)
+  key
+  |> env.set(pair.1)
 }
 
 fn recursively_set_environment_variables(
   config: DotEnv,
   kv_pairs: parser.KVPairs,
-) {
+) -> Result(Nil, String) {
   case kv_pairs {
-    [] -> Nil
+    [] -> Ok(Nil)
     [pair] -> set_env(config, pair)
     [pair, ..rest] -> {
-      set_env(config, pair)
+      use _ <- result.try(set_env(config, pair))
       recursively_set_environment_variables(config, rest)
     }
   }
