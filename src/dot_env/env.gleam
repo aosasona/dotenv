@@ -70,7 +70,7 @@ pub fn get_bool(key: String) -> Result(Bool, String) {
 
   case string.lowercase(raw_value) {
     "true" | "1" -> Ok(True)
-    "false" | "0" -> Ok(True)
+    "false" | "0" -> Ok(False)
     _ ->
       Error(
         "Invalid boolean value for environment variable `"
