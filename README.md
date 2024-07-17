@@ -6,7 +6,7 @@
 - [Installation](#installation)
 <!--toc:end-->
 
-[![Package Version](https://img.shields.io/hexpm/v/dot_env)](https://hex.pm/packages/dotenv)
+[![Package Version](https://img.shields.io/hexpm/v/dot_env)](https://hex.pm/packages/dot_env)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/dot_env/)
 
 dot_env is a port of the popular JavaScript [dotenv](https://github.com/motdotla/dotenv) package that helps you load environment variables from .env (or other) files.
