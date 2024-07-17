@@ -247,3 +247,24 @@ pub fn load_multiline_test() {
   env.get("MULTI_BACKTICKED")
   |> should.equal(Ok("THIS\nIS\nA\n\"MULTILINE'S\"\nSTRING"))
 }
+
+pub fn get_bool_test() {
+  dot_env.load_with_opts(Opts(
+    path: ".env.booleans",
+    debug: True,
+    capitalize: True,
+    ignore_missing_file: False,
+  ))
+
+  env.get_bool("BOOL_0")
+  |> should.equal(Ok(False))
+
+  env.get_bool("BOOL_1")
+  |> should.equal(Ok(True))
+
+  env.get_bool("BOOL_FALSE")
+  |> should.equal(Ok(False))
+
+  env.get_bool("BOOL_TRUE")
+  |> should.equal(Ok(True))
+}
