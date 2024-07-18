@@ -1,5 +1,5 @@
 name = "dot_env"
-version = "1.0.1"
+version = "1.1.0"
 
 description = "Load and use environment variables from files"
 licences = ["Apache-2.0"]
