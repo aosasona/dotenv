@@ -12,14 +12,15 @@ type Chars =
   List(String)
 
 pub fn parse(text: String) -> Result(KVPairs, String) {
-  text |> string.to_graphemes |> parse_kvs([])
+  text
+  |> explode_to_graphemes
+  |> parse_kvs([])
 }
 
 fn parse_kvs(text: Chars, acc: KVPairs) -> Result(KVPairs, String) {
   case text {
     [] -> Ok(list.reverse(acc))
-    ["\r", "\n", ..rest] | ["\n", ..rest] | [" ", ..rest] ->
-      parse_kvs(rest, acc)
+    ["\n", ..rest] | [" ", ..rest] -> parse_kvs(rest, acc)
     ["#", ..rest] -> parse_comment(rest, fn(r) { parse_kvs(r, acc) })
     ["e", "x", "p", "o", "r", "t", " ", ..rest] -> parse_kvs(rest, acc)
     _ -> {
@@ -45,13 +46,13 @@ fn parse_key(text: Chars, acc: Chars) -> Result(#(String, Chars), String) {
 
 fn parse_value(text: Chars) -> Result(#(String, Chars), String) {
   case text {
-    ["\n", ..rest] | ["\r", "\n", ..rest] -> Ok(#("", rest))
+    ["\n", ..rest] -> Ok(#("", rest))
     ["\"", ..rest] -> parse_value_double_quoted(rest, [])
     ["'", ..rest] -> parse_value_single_quoted(rest, [])
     ["`", ..rest] -> parse_value_backtick_quoted(rest, [])
     ["#", ..rest] -> parse_comment(rest, fn(r) { parse_value(r) })
     [c, ..rest] -> parse_value_unquoted(rest, [c])
-    [] -> Error("unexpected end of input")
+    [] -> Ok(#("", []))
   }
 }
 
@@ -60,10 +61,10 @@ fn parse_value_unquoted(
   acc: Chars,
 ) -> Result(#(String, Chars), String) {
   case text {
-    ["\r", "\n", ..rest] | ["\n", ..rest] -> Ok(#(string.trim(join(acc)), rest))
+    ["\n", ..rest] -> Ok(#(string.trim(join(acc)), rest))
     ["#", ..rest] -> parse_comment(rest, fn(r) { parse_value_unquoted(r, acc) })
     [c, ..rest] -> parse_value_unquoted(rest, [c, ..acc])
-    [] -> Error("unclosed double quote")
+    [] -> Ok(#(string.trim(join(acc)), []))
   }
 }
 
@@ -107,7 +108,6 @@ fn parse_value_backtick_quoted(
 
 fn parse_comment(text: Chars, next: fn(Chars) -> a) -> a {
   case text {
-    ["\r", "\n", ..] -> next(text)
     ["\n", ..] -> next(text)
     [_, ..rest] -> parse_comment(rest, next)
     [] -> next(text)
@@ -116,4 +116,14 @@ fn parse_comment(text: Chars, next: fn(Chars) -> a) -> a {
 
 fn join(strings: List(String)) -> String {
   strings |> list.reverse |> string.join("")
+}
+
+// On Windows, the line endings are \r\n, but we want to unify them to \n
+// because `string.to_graphemes` will not split `\r\n` into separate characters on Windows
+// Yes, we could pattern match on `\r\n` and `\n` in `parse_kvs`, but this is a safer solution
+// rather than depending on what could be unknown behaviour at time as proven with the earlier version
+// of this parser written under the assumption that `\r\n` would be split into separate characters
+fn explode_to_graphemes(text: String) -> Chars {
+  string.replace(text, "\r\n", "\n")
+  |> string.to_graphemes
 }
