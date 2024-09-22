@@ -118,11 +118,9 @@ fn join(strings: List(String)) -> String {
   strings |> list.reverse |> string.join("")
 }
 
-// On Windows, the line endings are \r\n, but we want to unify them to \n
-// because `string.to_graphemes` will not split `\r\n` into separate characters on Windows
-// Yes, we could pattern match on `\r\n` and `\n` in `parse_kvs`, but this is a safer solution
-// rather than depending on what could be unknown behaviour at time as proven with the earlier version
-// of this parser written under the assumption that `\r\n` would be split into separate characters
+// On Windows, the line endings are \r\n, but we want to unify them to \n because `string.to_graphemes` will not split `\r\n` into separate characters on Windows it seems
+// Yes, we could pattern match on `\r\n` and `\n` in `parse_kvs`, but this is a safer solution rather than depending on what could be unknown/platform-specific behaviour at times
+// as proven with the earlier version of this parser written under the assumption that `\r\n` would be split into separate characters, we can just do that find and replace here once and for all
 fn explode_to_graphemes(text: String) -> Chars {
   string.replace(text, "\r\n", "\n")
   |> string.to_graphemes
