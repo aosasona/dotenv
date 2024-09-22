@@ -70,6 +70,12 @@ pub fn load_default_test() {
 
   env.get_string("APP_DEBUG")
   |> should.equal(Ok("true"))
+
+  env.get_string("APP_TIMEZONE")
+  |> should.equal(Ok(""))
+
+  env.get_string("APP_URL")
+  |> should.equal(Ok("http://localhost"))
 }
 
 pub fn load_normal_test() {
