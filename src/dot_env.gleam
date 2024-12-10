@@ -34,7 +34,7 @@ pub const default = DotEnv(
   ignore_missing_file: True,
 )
 
-/// Create a default DotEnv instance. This is designed to use used as the starting point for using any of the builder methods
+/// Create a default DotEnv instance. This is designed to be used as the starting point for using any of the builder methods
 pub fn new() -> DotEnv {
   default
 }
