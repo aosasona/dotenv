@@ -1,7 +1,9 @@
 import dot_env/env
+import dot_env/internal/example_validator
 import dot_env/internal/parser
 import gleam/bool
 import gleam/io
+import gleam/option
 import gleam/result.{try}
 import gleam/string
 import simplifile
@@ -17,6 +19,8 @@ pub type Opts {
     capitalize: Bool,
     /// In case the file is missing, ignore the error and continue
     ignore_missing_file: Bool,
+    /// Configuration for example file validation
+    example_validation: option.Option(example_validator.ExampleFileConfig),
   )
 
   /// Default options for loading the .env file - see `default` constant
@@ -24,7 +28,13 @@ pub type Opts {
 }
 
 pub opaque type DotEnv {
-  DotEnv(path: String, debug: Bool, capitalize: Bool, ignore_missing_file: Bool)
+  DotEnv(
+    path: String,
+    debug: Bool,
+    capitalize: Bool,
+    ignore_missing_file: Bool,
+    example_validation: option.Option(example_validator.ExampleFileConfig),
+  )
 }
 
 pub const default = DotEnv(
@@ -32,6 +42,7 @@ pub const default = DotEnv(
   debug: True,
   capitalize: True,
   ignore_missing_file: True,
+  example_validation: option.None,
 )
 
 /// Create a default DotEnv instance. This is designed to be used as the starting point for using any of the builder methods
@@ -67,6 +78,14 @@ pub fn set_path(instance: DotEnv, path: String) -> DotEnv {
   DotEnv(..instance, path: path)
 }
 
+/// Set the example file validation configuration in the current DotEnv instance
+pub fn set_example_validation(
+  instance: DotEnv,
+  config: example_validator.ExampleFileConfig,
+) -> DotEnv {
+  DotEnv(..instance, example_validation: option.Some(config))
+}
+
 /// Get the path to the .env file in the current DotEnv instance
 pub fn path(instance: DotEnv) -> String {
   instance.path
@@ -91,6 +110,7 @@ pub fn load(dotenv: DotEnv) -> Nil {
     debug: dotenv.debug,
     capitalize: dotenv.capitalize,
     ignore_missing_file: dotenv.ignore_missing_file,
+    example_validation: option.None,
   ))
 }
 
@@ -126,12 +146,12 @@ pub fn load_default() -> Nil {
 /// ```
 pub fn load_with_opts(opts: Opts) {
   let dotenv = case opts {
-    Opts(path, debug, capitalize, ignore_missing_file) ->
-      DotEnv(path, debug, capitalize, ignore_missing_file)
+    Opts(path, debug, capitalize, ignore_missing_file, example_validation) ->
+      DotEnv(path, debug, capitalize, ignore_missing_file, example_validation)
     Default -> default
   }
 
-  let state = dotenv |> load_and_return_error
+  let state = load_and_return_error(dotenv, opts)
 
   case state {
     Ok(_) -> Nil
@@ -142,13 +162,22 @@ pub fn load_with_opts(opts: Opts) {
   }
 }
 
-fn load_and_return_error(dotenv: DotEnv) -> Result(Nil, String) {
+fn load_and_return_error(dotenv: DotEnv, _opts: Opts) -> Result(Nil, String) {
   use content <- try(
     read_file(dotenv)
     |> handle_file_result(dotenv.ignore_missing_file),
   )
 
   use kv_pairs <- try(parser.parse(content))
+
+  // Perform example file validation if configured
+  case dotenv.example_validation {
+    option.Some(config) -> {
+      let _ = validate_against_example_file(dotenv.path, content, config)
+      Nil
+    }
+    option.None -> Nil
+  }
 
   dotenv
   |> recursively_set_environment_variables(kv_pairs)
@@ -209,4 +238,47 @@ fn read_file(dotenv: DotEnv) -> Result(String, String) {
   )
 
   Ok(contents)
+}
+
+/// Validate the current environment file against an example file
+fn validate_against_example_file(
+  env_file_path: String,
+  env_content: String,
+  config: example_validator.ExampleFileConfig,
+) -> Result(Nil, String) {
+  let example_file_path =
+    example_validator.find_example_file_path(env_file_path)
+
+  case simplifile.is_file(example_file_path) {
+    Ok(True) -> {
+      case simplifile.read(example_file_path) {
+        Ok(example_content) -> {
+          case
+            example_validator.validate_against_example(
+              env_content,
+              example_content,
+              config,
+            )
+          {
+            Ok(validation_result) -> {
+              example_validator.print_validation_warnings(
+                validation_result,
+                env_file_path,
+                example_file_path,
+              )
+              Ok(Nil)
+            }
+            Error(msg) ->
+              Error("Failed to validate against example file: " <> msg)
+          }
+        }
+        Error(_) -> Ok(Nil)
+        // Silently ignore if we can't read the example file
+      }
+    }
+    Ok(False) -> Ok(Nil)
+    // Example file doesn't exist, skip validation
+    Error(_) -> Ok(Nil)
+    // Silently ignore if we can't check the example file
+  }
 }

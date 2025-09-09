@@ -1,5 +1,7 @@
 import dot_env.{Opts}
 import dot_env/env
+import dot_env/internal/example_validator
+import gleam/option
 import gleeunit
 import gleeunit/should
 
@@ -47,6 +49,7 @@ pub fn load_missing_env_file_test() {
     debug: True,
     capitalize: True,
     ignore_missing_file: True,
+    example_validation: option.None,
   ))
 
   env.get_string("PORT")
@@ -84,6 +87,7 @@ pub fn load_normal_test() {
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
+    example_validation: option.None,
   ))
 
   env.get_string("BASIC")
@@ -194,6 +198,7 @@ pub fn load_multiline_test() {
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
+    example_validation: option.None,
   ))
 
   env.get_string("BASIC")
@@ -260,6 +265,7 @@ pub fn get_bool_test() {
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
+    example_validation: option.None,
   ))
 
   env.get_bool("BOOL_0")
@@ -273,4 +279,46 @@ pub fn get_bool_test() {
 
   env.get_bool("BOOL_TRUE")
   |> should.equal(Ok(True))
+}
+
+pub fn example_file_validation_test() {
+  // Test with example file validation enabled
+  dot_env.load_with_opts(Opts(
+    path: ".env",
+    debug: True,
+    capitalize: True,
+    ignore_missing_file: False,
+    example_validation: option.Some(example_validator.ExampleFileConfig(
+      path: "test/env_example.txt",
+      warn_extra_keys: True,
+      warn_missing_keys: True,
+    )),
+  ))
+
+  // The validation should have run and printed warnings
+  // We can verify that the environment variables are still loaded correctly
+  env.get_string("PORT")
+  |> should.equal(Ok("9000"))
+
+  env.get_string("APP_NAME")
+  |> should.equal(Ok("app"))
+}
+
+pub fn example_file_validation_missing_file_test() {
+  // Test with example file validation but file doesn't exist
+  dot_env.load_with_opts(Opts(
+    path: ".env",
+    debug: True,
+    capitalize: True,
+    ignore_missing_file: False,
+    example_validation: option.Some(example_validator.ExampleFileConfig(
+      path: "test/nonexistent_example.txt",
+      warn_extra_keys: True,
+      warn_missing_keys: True,
+    )),
+  ))
+
+  // Should still load the environment variables without errors
+  env.get_string("PORT")
+  |> should.equal(Ok("9000"))
 }

@@ -1,0 +1,24 @@
+# This is the application port
+PORT=
+
+# App name
+APP_NAME=
+
+# The environment
+# It may be "local"
+# Or "production"
+APP_ENV=
+
+APP_KEY=
+
+APP_DEBUG=
+
+APP_URL=
+
+# Left empty on purpose
+APP_TIMEZONE=
+
+# Additional example variables
+DATABASE_URL=
+REDIS_URL=
+API_KEY=

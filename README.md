@@ -20,6 +20,7 @@ dot_env is a port of the popular JavaScript [dotenv](https://github.com/motdotla
 ```gleam
 import dot_env as dot
 import dot_env/env
+import dot_env/internal/example_validator
 import gleam/io
 
 pub fn main() {
@@ -45,6 +46,55 @@ pub fn main() {
   echo enable_signup
 
   Nil
+}
+```
+
+## Example File Validation
+
+The package now supports validating your environment files against example files (e.g., `.env.example`). This helps ensure that all required environment variables are defined and warns about missing or extra keys.
+
+```gleam
+import dot_env as dot
+import dot_env/internal/example_validator
+
+pub fn main() {
+    let config = example_validator.ExampleFileConfig(
+        path: ".env.example",
+        warn_extra_keys: True,
+        warn_missing_keys: True,
+    )
+
+    dot.new()
+    |> dot.set_path(".env")
+    |> dot.set_example_validation(config)
+    |> dot.load
+
+    Nil
+}
+```
+
+You can also use it with the options-based approach:
+
+```gleam
+import dot_env
+import dot_env/internal/example_validator
+
+pub fn main() {
+    let config = example_validator.ExampleFileConfig(
+        path: ".env.example",
+        warn_extra_keys: False,  // Only warn about missing keys
+        warn_missing_keys: True,
+    )
+
+    dot_env.load_with_opts(dot_env.Opts(
+        path: ".env",
+        debug: True,
+        capitalize: True,
+        ignore_missing_file: False,
+        example_validation: option.Some(config),
+    ))
+
+    Nil
 }
 ```
 
