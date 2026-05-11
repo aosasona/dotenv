@@ -10,7 +10,7 @@ internal_modules = ["dot_env/internal/*"]
 gleam = ">= 1.0.0"
 
 [dependencies]
-gleam_stdlib = ">= 0.40.0 and < 1.0.0"
+gleam_stdlib = ">= 0.40.0 and < 2.0.0"
 simplifile = ">= 2.1.0 and < 3.0.0"
 
 [dev-dependencies]
