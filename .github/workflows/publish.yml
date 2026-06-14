@@ -5,8 +5,7 @@ on:
 jobs:
   publish:
     env:
-      HEXPM_USER: ${{ secrets.HEXPM_USER }}
-      HEXPM_PASS: ${{ secrets.HEXPM_PASS }}
+      HEXPM_API_KEY: ${{ secrets.HEXPM_API_KEY }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
