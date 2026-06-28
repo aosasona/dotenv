@@ -62,7 +62,7 @@ export function get_env(key) {
   }
 
   if (value == Nil || value === undefined) {
-    return new GleamError(Nil);
+    return new GleamError(`key ${key} is not set`);
   }
 
   return new GleamOk(value);

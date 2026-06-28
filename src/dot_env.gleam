@@ -1,5 +1,6 @@
 import dot_env/env
 import dot_env/internal/parser
+import dot_env/internal/template
 import gleam/bool
 import gleam/io
 import gleam/result.{try}
@@ -11,6 +12,8 @@ pub type Opts {
   Opts(
     /// The path to the .env file relative to the project root eg. .env and src/.env are two different things, .env points to the root of the project, src/.env points to the src folder in the root of the project
     path: String,
+    /// Warn if variables defined in {path}.example are missing from the environment.
+    check_example: Bool,
     /// Print debug information if something goes wrong
     debug: Bool,
     /// Force all keys to be uppercase
@@ -24,11 +27,18 @@ pub type Opts {
 }
 
 pub opaque type DotEnv {
-  DotEnv(path: String, debug: Bool, capitalize: Bool, ignore_missing_file: Bool)
+  DotEnv(
+    path: String,
+    check_example: Bool,
+    debug: Bool,
+    capitalize: Bool,
+    ignore_missing_file: Bool,
+  )
 }
 
 pub const default = DotEnv(
   path: ".env",
+  check_example: True,
   debug: True,
   capitalize: True,
   ignore_missing_file: True,
@@ -42,6 +52,11 @@ pub fn new() -> DotEnv {
 /// Create a new DotEnv instance with the specified path
 pub fn new_with_path(path: String) -> DotEnv {
   DotEnv(..default, path: path)
+}
+
+/// Todo
+pub fn set_check_example(instance: DotEnv, check_example: Bool) -> DotEnv {
+  DotEnv(..instance, check_example: check_example)
 }
 
 /// Set whether to print debug information in the current DotEnv instance
@@ -88,6 +103,7 @@ pub fn path(instance: DotEnv) -> String {
 pub fn load(dotenv: DotEnv) -> Nil {
   load_with_opts(Opts(
     path: dotenv.path,
+    check_example: dotenv.check_example,
     debug: dotenv.debug,
     capitalize: dotenv.capitalize,
     ignore_missing_file: dotenv.ignore_missing_file,
@@ -126,15 +142,13 @@ pub fn load_default() -> Nil {
 /// ```
 pub fn load_with_opts(opts: Opts) {
   let dotenv = case opts {
-    Opts(path, debug, capitalize, ignore_missing_file) ->
-      DotEnv(path, debug, capitalize, ignore_missing_file)
+    Opts(path, check_example, debug, capitalize, ignore_missing_file) ->
+      DotEnv(path, check_example, debug, capitalize, ignore_missing_file)
     Default -> default
   }
 
-  let state = dotenv |> load_and_return_error
-
-  case state {
-    Ok(_) -> Nil
+  case load_and_return_error(dotenv) {
+    Ok(conf) -> check_template(dotenv, conf)
     Error(msg) -> {
       use <- bool.guard(when: !dotenv.debug, return: Nil)
       io.println_error(msg)
@@ -142,16 +156,47 @@ pub fn load_with_opts(opts: Opts) {
   }
 }
 
-fn load_and_return_error(dotenv: DotEnv) -> Result(Nil, String) {
+fn load_and_return_error(
+  dotenv: DotEnv,
+) -> Result(List(#(String, String)), String) {
   use content <- try(
-    read_file(dotenv)
+    read_file(dotenv.path)
     |> handle_file_result(dotenv.ignore_missing_file),
   )
 
-  use kv_pairs <- try(parser.parse(content))
+  use conf <- try(parser.parse(content))
 
-  dotenv
-  |> recursively_set_environment_variables(kv_pairs)
+  use _ <- try(dotenv |> recursively_set_environment_variables(conf))
+
+  Ok(conf)
+}
+
+fn check_template(dotenv: DotEnv, conf: List(#(String, String))) -> Nil {
+  use <- bool.guard(when: !dotenv.check_example, return: Nil)
+
+  // maybe add example_path as an option?
+  let template_path = dotenv.path <> ".example"
+
+  let res = {
+    use content <- try(read_file(template_path))
+    use conf_example <- try(parser.parse(content))
+
+    template.missing_keys(conf, conf_example, dotenv.capitalize)
+    |> warn_missing_keys
+
+    Ok(Nil)
+  }
+
+  case res {
+    Ok(_) -> Nil
+    Error(error) -> {
+      let msg = case dotenv.debug {
+        True -> error <> "\nSkipping template check"
+        False -> "Skipping template check"
+      }
+      io.println_error(msg)
+    }
+  }
 }
 
 fn handle_file_result(
@@ -186,9 +231,9 @@ fn recursively_set_environment_variables(
   }
 }
 
-fn read_file(dotenv: DotEnv) -> Result(String, String) {
+fn read_file(path: String) -> Result(String, String) {
   use is_file <- result.try(
-    simplifile.is_file(dotenv.path)
+    simplifile.is_file(path)
     |> result.map_error(with: fn(_) {
       "Failed to access file, ensure the file exists and is a readable file"
     }),
@@ -196,17 +241,33 @@ fn read_file(dotenv: DotEnv) -> Result(String, String) {
 
   use <- bool.guard(
     when: !is_file,
-    return: Error("Specified file at `" <> dotenv.path <> "` does not exist"),
+    return: Error("Specified file at `" <> path <> "` does not exist"),
   )
 
   use contents <- result.try(
-    simplifile.read(dotenv.path)
+    simplifile.read(path)
     |> result.map_error(with: fn(_) {
       "Unable to read file at `"
-      <> dotenv.path
+      <> path
       <> "`, ensure the file exists and is readable"
     }),
   )
 
   Ok(contents)
+}
+
+fn warn_missing_keys(keys: List(String)) {
+  case keys {
+    [] -> Nil
+    _ -> {
+      let joined_vars = string.join(keys, with: ", ")
+      let warning_msg =
+        "The following variables were defined in the example file but are not present in the environment:\n"
+        <> "  "
+        <> joined_vars
+        <> "\n"
+        <> "Make sure to add them to your env file."
+      io.println_error(warning_msg)
+    }
+  }
 }
