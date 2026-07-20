@@ -1,6 +1,7 @@
 import dot_env.{Opts}
 import dot_env/env
 import dot_env/internal/template
+import gleam/option.{None}
 import gleeunit
 import gleeunit/should
 
@@ -11,7 +12,8 @@ pub fn main() {
 pub fn get_test() {
   dot_env.load_with_opts(Opts(
     path: ".env",
-    check_example: False,
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -51,7 +53,8 @@ pub fn load_missing_env_file_test() {
   // This should not fail or crash
   dot_env.load_with_opts(Opts(
     path: ".definitely_not_a_real_file",
-    check_example: False,
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: True,
@@ -64,7 +67,8 @@ pub fn load_missing_env_file_test() {
 pub fn load_default_test() {
   dot_env.load_with_opts(Opts(
     path: ".env",
-    check_example: False,
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -95,7 +99,8 @@ pub fn load_default_test() {
 pub fn load_normal_test() {
   dot_env.load_with_opts(Opts(
     path: ".env.normal",
-    check_example: False,
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -206,7 +211,8 @@ pub fn load_normal_test() {
 pub fn load_multiline_test() {
   dot_env.load_with_opts(Opts(
     path: ".env.multiline",
-    check_example: False,
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -273,7 +279,8 @@ pub fn load_multiline_test() {
 pub fn get_bool_test() {
   dot_env.load_with_opts(Opts(
     path: ".env.booleans",
-    check_example: False,
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -293,7 +300,7 @@ pub fn get_bool_test() {
 }
 
 pub fn no_missing_keys_test() {
-  let conf = [
+  let config = [
     #("PORT", "9000"),
     #("HOST", "localhost"),
   ]
@@ -303,12 +310,12 @@ pub fn no_missing_keys_test() {
     #("HOST", ""),
   ]
 
-  template.missing_keys(conf, example, True)
+  template.missing_keys(config, example, True)
   |> should.equal([])
 }
 
 pub fn missing_keys_test() {
-  let conf = [
+  let config = [
     #("PORT", "9000"),
   ]
 
@@ -318,7 +325,7 @@ pub fn missing_keys_test() {
     #("DATABASE_URL", ""),
   ]
 
-  template.missing_keys(conf, example, True)
+  template.missing_keys(config, example, True)
   |> should.equal([
     "HOST",
     "DATABASE_URL",

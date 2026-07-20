@@ -3,6 +3,7 @@ import dot_env/internal/parser
 import dot_env/internal/template
 import gleam/bool
 import gleam/io
+import gleam/option.{type Option, None, Some}
 import gleam/result.{try}
 import gleam/string
 import simplifile
@@ -13,7 +14,9 @@ pub type Opts {
     /// The path to the .env file relative to the project root eg. .env and src/.env are two different things, .env points to the root of the project, src/.env points to the src folder in the root of the project
     path: String,
     /// Warn if variables defined in {path}.example are missing from the environment.
-    check_example: Bool,
+    validate_template: Bool,
+    /// Specify a template_path (by default `{path}.example` if not set explicitly)
+    template_path: Option(String),
     /// Print debug information if something goes wrong
     debug: Bool,
     /// Force all keys to be uppercase
@@ -29,7 +32,8 @@ pub type Opts {
 pub opaque type DotEnv {
   DotEnv(
     path: String,
-    check_example: Bool,
+    validate_template: Bool,
+    template_path: Option(String),
     debug: Bool,
     capitalize: Bool,
     ignore_missing_file: Bool,
@@ -38,7 +42,8 @@ pub opaque type DotEnv {
 
 pub const default = DotEnv(
   path: ".env",
-  check_example: True,
+  validate_template: True,
+  template_path: None,
   debug: True,
   capitalize: True,
   ignore_missing_file: True,
@@ -54,9 +59,21 @@ pub fn new_with_path(path: String) -> DotEnv {
   DotEnv(..default, path: path)
 }
 
-/// Todo
-pub fn set_check_example(instance: DotEnv, check_example: Bool) -> DotEnv {
-  DotEnv(..instance, check_example: check_example)
+/// Set whether to warn if variables defined in the template file (by default `{path}.example`) are missing from the environment.
+///
+/// If set to `True`, a warning will be printed for any missing variables.
+pub fn set_validate_template(
+  instance: DotEnv,
+  validate_template: Bool,
+) -> DotEnv {
+  DotEnv(..instance, validate_template: validate_template)
+}
+
+/// Set a specific file path to use as the template for environment variable validation. 
+///
+/// If not set, it defaults to the path of the `.env` file with `.example` appended (e.g., `.env.example`).
+pub fn set_template_path(instance: DotEnv, template_path: String) -> DotEnv {
+  DotEnv(..instance, template_path: Some(template_path))
 }
 
 /// Set whether to print debug information in the current DotEnv instance
@@ -103,7 +120,8 @@ pub fn path(instance: DotEnv) -> String {
 pub fn load(dotenv: DotEnv) -> Nil {
   load_with_opts(Opts(
     path: dotenv.path,
-    check_example: dotenv.check_example,
+    validate_template: dotenv.validate_template,
+    template_path: dotenv.template_path,
     debug: dotenv.debug,
     capitalize: dotenv.capitalize,
     ignore_missing_file: dotenv.ignore_missing_file,
@@ -135,15 +153,37 @@ pub fn load_default() -> Nil {
 ///
 /// ```gleam
 /// import dot_env
+/// import gleam/option.{None}
 ///
 /// pub fn main() {
-///   dot_env.load_with_opts(dot_env.Opts(path: "src/.env", debug: False, capitalize: False))
+///   dot_env.load_with_opts(dot_env.Opts(
+///     path: "src/.env",
+///     validate_template: True,
+///     template_path: None,
+///     debug: False,
+///     capitalize: False,
+///     ignore_missing_file: False,
+///   ))
 /// }
 /// ```
 pub fn load_with_opts(opts: Opts) {
   let dotenv = case opts {
-    Opts(path, check_example, debug, capitalize, ignore_missing_file) ->
-      DotEnv(path, check_example, debug, capitalize, ignore_missing_file)
+    Opts(
+      path,
+      validate_template,
+      template_path,
+      debug,
+      capitalize,
+      ignore_missing_file,
+    ) ->
+      DotEnv(
+        path,
+        validate_template,
+        template_path,
+        debug,
+        capitalize,
+        ignore_missing_file,
+      )
     Default -> default
   }
 
@@ -172,13 +212,17 @@ fn load_and_return_error(
 }
 
 fn check_template(dotenv: DotEnv, conf: List(#(String, String))) -> Nil {
-  use <- bool.guard(when: !dotenv.check_example, return: Nil)
+  use <- bool.guard(when: !dotenv.validate_template, return: Nil)
 
-  // maybe add example_path as an option?
-  let template_path = dotenv.path <> ".example"
+  let template_path = case dotenv.template_path {
+    Some(path) -> path
+    None -> dotenv.path <> ".example"
+  }
 
   let res = {
-    use content <- try(read_file(template_path))
+    use content <- try(
+      read_file(template_path) |> handle_file_result(dotenv.ignore_missing_file),
+    )
     use conf_example <- try(parser.parse(content))
 
     template.missing_keys(conf, conf_example, dotenv.capitalize)
@@ -190,11 +234,8 @@ fn check_template(dotenv: DotEnv, conf: List(#(String, String))) -> Nil {
   case res {
     Ok(_) -> Nil
     Error(error) -> {
-      let msg = case dotenv.debug {
-        True -> error <> "\nSkipping template check"
-        False -> "Skipping template check"
-      }
-      io.println_error(msg)
+      use <- bool.guard(when: !dotenv.debug, return: Nil)
+      io.println_error(error <> "\nSkipping template check")
     }
   }
 }

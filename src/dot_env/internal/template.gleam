@@ -4,13 +4,13 @@ import gleam/list
 import gleam/string
 
 pub fn missing_keys(
-  conf: List(#(String, String)),
-  conf_example: List(#(String, String)),
+  config: List(#(String, String)),
+  config_example: List(#(String, String)),
   capitalize: Bool,
 ) -> List(String) {
-  let conf_dict = dict.from_list(conf)
+  let config_dict = dict.from_list(config)
 
-  list.fold(conf_example, [], fn(acc, kv) {
+  list.fold(config_example, [], fn(acc, kv) {
     let #(key, _) = kv
 
     let look_up_key = case capitalize {
@@ -18,7 +18,7 @@ pub fn missing_keys(
       False -> key
     }
 
-    let is_set = has_env(look_up_key) || dict.has_key(conf_dict, key)
+    let is_set = has_env(look_up_key) || dict.has_key(config_dict, key)
     case is_set {
       True -> acc
       False -> [key, ..acc]
@@ -27,7 +27,6 @@ pub fn missing_keys(
   |> list.reverse
 }
 
-// Todo check in os env
 fn has_env(key: String) -> Bool {
   case env.get_string(key) {
     Ok(_) -> True
