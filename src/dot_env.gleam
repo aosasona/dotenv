@@ -13,7 +13,7 @@ pub type Opts {
   Opts(
     /// The path to the .env file relative to the project root eg. .env and src/.env are two different things, .env points to the root of the project, src/.env points to the src folder in the root of the project
     path: String,
-    /// Warn if variables defined in {path}.example are missing from the environment.
+    /// Warn if variables defined in the template file (by default `{path}.example`) are missing from both the `.env` file and the environment.
     validate_template: Bool,
     /// Specify a template_path (by default `{path}.example` if not set explicitly)
     template_path: Option(String),
@@ -59,7 +59,7 @@ pub fn new_with_path(path: String) -> DotEnv {
   DotEnv(..default, path: path)
 }
 
-/// Set whether to warn if variables defined in the template file (by default `{path}.example`) are missing from the environment.
+/// Set whether to warn if variables defined in the template file (by default `{path}.example`) are missing from both the `.env` file and the environment.
 ///
 /// If set to `True`, a warning will be printed for any missing variables.
 pub fn set_validate_template(
@@ -188,7 +188,7 @@ pub fn load_with_opts(opts: Opts) {
   }
 
   case load_and_return_error(dotenv) {
-    Ok(conf) -> check_template(dotenv, conf)
+    Ok(config) -> validate_template(dotenv, config)
     Error(msg) -> {
       use <- bool.guard(when: !dotenv.debug, return: Nil)
       io.println_error(msg)
@@ -204,14 +204,14 @@ fn load_and_return_error(
     |> handle_file_result(dotenv.ignore_missing_file),
   )
 
-  use conf <- try(parser.parse(content))
+  use config <- try(parser.parse(content))
 
-  use _ <- try(dotenv |> recursively_set_environment_variables(conf))
+  use _ <- try(dotenv |> recursively_set_environment_variables(config))
 
-  Ok(conf)
+  Ok(config)
 }
 
-fn check_template(dotenv: DotEnv, conf: List(#(String, String))) -> Nil {
+fn validate_template(dotenv: DotEnv, config: List(#(String, String))) -> Nil {
   use <- bool.guard(when: !dotenv.validate_template, return: Nil)
 
   let template_path = case dotenv.template_path {
@@ -221,18 +221,16 @@ fn check_template(dotenv: DotEnv, conf: List(#(String, String))) -> Nil {
 
   let res = {
     use content <- try(
-      read_file(template_path) |> handle_file_result(dotenv.ignore_missing_file),
+      read_file(template_path)
+      |> handle_file_result(dotenv.ignore_missing_file),
     )
-    use conf_example <- try(parser.parse(content))
+    use config_example <- try(parser.parse(content))
 
-    template.missing_keys(conf, conf_example, dotenv.capitalize)
-    |> warn_missing_keys
-
-    Ok(Nil)
+    template.missing_keys(config, config_example, dotenv.capitalize) |> Ok
   }
 
   case res {
-    Ok(_) -> Nil
+    Ok(missing) -> warn_missing_keys(missing)
     Error(error) -> {
       use <- bool.guard(when: !dotenv.debug, return: Nil)
       io.println_error(error <> "\nSkipping template check")
@@ -303,7 +301,7 @@ fn warn_missing_keys(keys: List(String)) {
     _ -> {
       let joined_vars = string.join(keys, with: ", ")
       let warning_msg =
-        "The following variables were defined in the example file but are not present in the environment:\n"
+        "The following variables were defined in the example file but are missing from both the `.env` file and the environment:\n"
         <> "  "
         <> joined_vars
         <> "\n"

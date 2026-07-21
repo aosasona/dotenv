@@ -10,14 +10,7 @@ pub fn main() {
 }
 
 pub fn get_test() {
-  dot_env.load_with_opts(Opts(
-    path: ".env",
-    validate_template: False,
-    template_path: None,
-    debug: True,
-    capitalize: True,
-    ignore_missing_file: False,
-  ))
+  dot_env.load_default()
 
   env.get_string("DEFINITELY_NOT_A_REAL_KEY")
   |> should.be_error
@@ -65,14 +58,7 @@ pub fn load_missing_env_file_test() {
 }
 
 pub fn load_default_test() {
-  dot_env.load_with_opts(Opts(
-    path: ".env",
-    validate_template: False,
-    template_path: None,
-    debug: True,
-    capitalize: True,
-    ignore_missing_file: False,
-  ))
+  dot_env.load_default()
 
   env.get_string("PORT")
   |> should.equal(Ok("9000"))
