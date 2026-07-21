@@ -1,5 +1,7 @@
 import dot_env.{Opts}
 import dot_env/env
+import dot_env/internal/template
+import gleam/option.{None}
 import gleeunit
 import gleeunit/should
 
@@ -44,6 +46,8 @@ pub fn load_missing_env_file_test() {
   // This should not fail or crash
   dot_env.load_with_opts(Opts(
     path: ".definitely_not_a_real_file",
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: True,
@@ -81,6 +85,8 @@ pub fn load_default_test() {
 pub fn load_normal_test() {
   dot_env.load_with_opts(Opts(
     path: ".env.normal",
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -191,6 +197,8 @@ pub fn load_normal_test() {
 pub fn load_multiline_test() {
   dot_env.load_with_opts(Opts(
     path: ".env.multiline",
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -257,6 +265,8 @@ pub fn load_multiline_test() {
 pub fn get_bool_test() {
   dot_env.load_with_opts(Opts(
     path: ".env.booleans",
+    validate_template: False,
+    template_path: None,
     debug: True,
     capitalize: True,
     ignore_missing_file: False,
@@ -273,4 +283,37 @@ pub fn get_bool_test() {
 
   env.get_bool("BOOL_TRUE")
   |> should.equal(Ok(True))
+}
+
+pub fn no_missing_keys_test() {
+  let config = [
+    #("PORT", "9000"),
+    #("HOST", "localhost"),
+  ]
+
+  let example = [
+    #("PORT", ""),
+    #("HOST", ""),
+  ]
+
+  template.missing_keys(config, example, True)
+  |> should.equal([])
+}
+
+pub fn missing_keys_test() {
+  let config = [
+    #("PORT", "9000"),
+  ]
+
+  let example = [
+    #("PORT", ""),
+    #("HOST", ""),
+    #("DATABASE_URL", ""),
+  ]
+
+  template.missing_keys(config, example, True)
+  |> should.equal([
+    "HOST",
+    "DATABASE_URL",
+  ])
 }
