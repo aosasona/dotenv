@@ -76,7 +76,7 @@ pub fn set_paths(options: Options, paths: List(String)) -> Options {
 
 /// Set whether to capitalize all keys in the options
 pub fn set_capitalize(options: Options, capitalize: Bool) -> Options {
-  [Capitalize(capitalize), ..options]
+  Capitalize(capitalize) |> replace_option(options)
 }
 
 /// Set whether to print debug information in the options
