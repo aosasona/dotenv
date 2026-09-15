@@ -1,3 +1,5 @@
+import gleam/list
+
 pub type Option {
   /// The paths to the .env files to load. If multiple paths are provided, they will be loaded in order, with later files overriding earlier ones.
   Paths(List(String))
@@ -23,6 +25,17 @@ const default = [
   Debug(True),
   IgnoreMissingFile(True),
 ]
+
+/// Get the name of the option as a string
+/// This is useful for debugging and logging purposes, and also for filtering options by name. For example, you can use this function to check if a specific option is present in the list of options.
+pub fn name(option: Option) -> String {
+  case option {
+    Paths(_) -> "Paths"
+    Capitalize(_) -> "Capitalize"
+    Debug(_) -> "Debug"
+    IgnoreMissingFile(_) -> "IgnoreMissingFile"
+  }
+}
 
 /// Check if the options is set to ignore missing file errors
 pub fn ignore_missing_file(options: Options) -> Bool {
@@ -74,4 +87,18 @@ pub fn set_debug(options: Options, debug: Bool) -> Options {
 /// Set whether to ignore missing file errors in the options
 pub fn set_ignore_missing_file(options: Options, ignore: Bool) -> Options {
   [IgnoreMissingFile(ignore), ..options]
+}
+
+/// Apply the option to the list of options, replacing any existing option with the same name
+fn replace_option(option: Option, options: Options) -> Options {
+  let option_name = name(option)
+
+  options
+  |> list.filter(fn(existing) { name(existing) != option_name })
+  |> list.prepend(option)
+}
+
+/// Append the option to the list of options, without replacing any existing option with the same name
+fn append_option(option: Option, options: Options) -> Options {
+  [option, ..options]
 }
