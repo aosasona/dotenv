@@ -74,6 +74,13 @@ pub fn set_paths(options: Options, paths: List(String)) -> Options {
   Paths(paths) |> replace_option(options)
 }
 
+/// Add a path to the list of paths to load in the options
+pub fn add_path(options: Options, path: String) -> Options {
+  let existing_paths = paths(options)
+  let new_paths = [path, ..existing_paths]
+  Paths(new_paths) |> replace_option(options)
+}
+
 /// Set whether to capitalize all keys in the options
 pub fn set_capitalize(options: Options, capitalize: Bool) -> Options {
   Capitalize(capitalize) |> replace_option(options)
