@@ -104,8 +104,3 @@ fn replace_option(option: Option, options: Options) -> Options {
   |> list.filter(fn(existing) { name(existing) != option_name })
   |> list.prepend(option)
 }
-
-/// Append the option to the list of options, without replacing any existing option with the same name
-fn append_option(option: Option, options: Options) -> Options {
-  [option, ..options]
-}
