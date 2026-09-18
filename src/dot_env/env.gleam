@@ -22,23 +22,6 @@ pub fn set(key: String, value: String) -> Result(Nil, String)
 
 /// Get an environment variable (supports both Erlang and JavaScript targets)
 ///
-/// Example:
-/// ```gleam
-/// import dot_env/env
-/// import gleam/io
-/// import gleam/result
-///
-/// env.get("FOO")
-/// |> result.unwrap("NOT SET")
-/// |> io.println
-/// ```
-@deprecated("Use `get_string` instead, this will be removed in the next release")
-@external(erlang, "dot_env_ffi", "get_env")
-@external(javascript, "../dot_env_ffi.mjs", "get_env")
-pub fn get(key: String) -> Result(String, String)
-
-/// Get an environment variable (supports both Erlang and JavaScript targets)
-///
 /// ## Usage
 ///
 /// ```gleam
@@ -56,13 +39,6 @@ pub fn get(key: String) -> Result(String, String)
 @external(erlang, "dot_env_ffi", "get_env")
 @external(javascript, "../dot_env_ffi.mjs", "get_env")
 pub fn get_string(key: String) -> Result(String, String)
-
-/// Get an environment variable or return a default value if it is not set
-@deprecated("Use `get_string_or` instead, this will be removed in the next release")
-pub fn get_or(key: String, default: String) -> String {
-  get_string(key)
-  |> result.unwrap(default)
-}
 
 /// Get an environment variable or return a default value if it is not set
 ///
