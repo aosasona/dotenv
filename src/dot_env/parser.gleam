@@ -1,5 +1,5 @@
 import gleam/list
-import gleam/result.{try}
+import gleam/result
 import gleam/string
 
 pub type KVPair =
@@ -11,12 +11,17 @@ pub type KVPairs =
 type Chars =
   List(String)
 
+/// Parse key-value pairs from a string
+///
+/// The string can contain comments, which start with a `#` and continue to the end of the line
+/// The parser also allows for unquoted values, which are terminated by a newline or a comment
 pub fn parse(text: String) -> Result(KVPairs, String) {
   text
   |> explode_to_graphemes
   |> parse_kvs([])
 }
 
+/// Parse key-value pairs from a list of characters
 fn parse_kvs(text: Chars, acc: KVPairs) -> Result(KVPairs, String) {
   case text {
     [] -> Ok(list.reverse(acc))
@@ -24,18 +29,20 @@ fn parse_kvs(text: Chars, acc: KVPairs) -> Result(KVPairs, String) {
     ["#", ..rest] -> parse_comment(rest, fn(r) { parse_kvs(r, acc) })
     ["e", "x", "p", "o", "r", "t", " ", ..rest] -> parse_kvs(rest, acc)
     _ -> {
-      use #(pair, rest) <- try(parse_kv(text))
+      use #(pair, rest) <- result.try(parse_kv(text))
       parse_kvs(rest, [pair, ..acc])
     }
   }
 }
 
+/// Parse a single key-value pair from a list of characters
 fn parse_kv(text: Chars) -> Result(#(KVPair, Chars), String) {
-  use #(key, rest) <- try(parse_key(text, []))
-  use #(value, rest) <- try(parse_value(rest))
+  use #(key, rest) <- result.try(parse_key(text, []))
+  use #(value, rest) <- result.try(parse_value(rest))
   Ok(#(#(key, value), rest))
 }
 
+/// Parse a key from a list of characters
 fn parse_key(text: Chars, acc: Chars) -> Result(#(String, Chars), String) {
   case text {
     ["=", ..rest] -> Ok(#(string.trim(join(acc)), rest))
@@ -44,6 +51,8 @@ fn parse_key(text: Chars, acc: Chars) -> Result(#(String, Chars), String) {
   }
 }
 
+/// Parse a value from a list of characters
+/// Values can be unquoted, single-quoted, double-quoted, or backtick-quoted
 fn parse_value(text: Chars) -> Result(#(String, Chars), String) {
   case text {
     ["\n", ..rest] -> Ok(#("", rest))
@@ -56,6 +65,8 @@ fn parse_value(text: Chars) -> Result(#(String, Chars), String) {
   }
 }
 
+/// Parse an unquoted value from a list of characters
+/// .env files allow unquoted values, but they must not contain whitespace or special characters
 fn parse_value_unquoted(
   text: Chars,
   acc: Chars,
@@ -68,6 +79,7 @@ fn parse_value_unquoted(
   }
 }
 
+/// Parse a double-quoted value from a list of characters
 fn parse_value_double_quoted(
   text: Chars,
   acc: Chars,
@@ -81,6 +93,7 @@ fn parse_value_double_quoted(
   }
 }
 
+/// Parse a single-quoted value from a list of characters
 fn parse_value_single_quoted(
   text: Chars,
   acc: Chars,
@@ -93,6 +106,7 @@ fn parse_value_single_quoted(
   }
 }
 
+/// Parse a backtick-quoted value from a list of characters
 fn parse_value_backtick_quoted(
   text: Chars,
   acc: Chars,
@@ -106,6 +120,7 @@ fn parse_value_backtick_quoted(
   }
 }
 
+/// Parse a comment from a list of characters
 fn parse_comment(text: Chars, next: fn(Chars) -> a) -> a {
   case text {
     ["\n", ..] -> next(text)
@@ -114,6 +129,8 @@ fn parse_comment(text: Chars, next: fn(Chars) -> a) -> a {
   }
 }
 
+/// Join a list of strings into a single string
+/// The list is reversed before joining because the characters are accumulated in reverse order during parsing
 fn join(strings: List(String)) -> String {
   strings |> list.reverse |> string.join("")
 }

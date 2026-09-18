@@ -5,8 +5,6 @@ description = "Load and use environment variables from files"
 licences = ["Apache-2.0"]
 repository = { type = "github", user = "aosasona", repo = "dotenv" }
 
-internal_modules = ["dot_env/internal/*"]
-
 gleam = ">= 1.12.0"
 
 [dependencies]
