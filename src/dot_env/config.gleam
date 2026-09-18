@@ -19,7 +19,7 @@ pub type Config =
   List(Value)
 
 /// The default options for loading the .env file
-const default = [
+pub const default = [
   Paths([".env"]),
   Capitalize(True),
   Debug(True),
