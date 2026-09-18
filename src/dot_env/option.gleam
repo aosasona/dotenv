@@ -71,7 +71,7 @@ pub fn paths(options: Options) -> List(String) {
 
 /// Set the paths to the .env files to load in the options
 pub fn set_paths(options: Options, paths: List(String)) -> Options {
-  [Paths(paths), ..options]
+  Paths(paths) |> replace_option(options)
 }
 
 /// Set whether to capitalize all keys in the options
@@ -81,12 +81,12 @@ pub fn set_capitalize(options: Options, capitalize: Bool) -> Options {
 
 /// Set whether to print debug information in the options
 pub fn set_debug(options: Options, debug: Bool) -> Options {
-  [Debug(debug), ..options]
+  Debug(debug) |> replace_option(options)
 }
 
 /// Set whether to ignore missing file errors in the options
 pub fn set_ignore_missing_file(options: Options, ignore: Bool) -> Options {
-  [IgnoreMissingFile(ignore), ..options]
+  IgnoreMissingFile(ignore) |> replace_option(options)
 }
 
 /// Apply the option to the list of options, replacing any existing option with the same name
