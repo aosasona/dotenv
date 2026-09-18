@@ -1,3 +1,4 @@
+import dot_env/parser
 import gleam/int
 import gleam/result
 import gleam/string
@@ -19,6 +20,24 @@ import gleam/string
 @external(erlang, "dot_env_ffi", "set_env")
 @external(javascript, "../dot_env_ffi.mjs", "set_env")
 pub fn set(key: String, value: String) -> Result(Nil, String)
+
+/// Set an environment variable from a parser.Field (supports both Erlang and JavaScript targets)
+///
+/// ## Usage
+///
+/// ```gleam
+/// import dot_env/env
+/// import dot_env/parser
+///
+/// fn main() {
+///   parser.Field(key: "APP_NAME", value: "app")
+///   |> env.set_from_field
+///
+///   Nil
+/// }
+pub fn set_from_field(field: parser.Field) -> Result(Nil, String) {
+  set(field.key, field.value)
+}
 
 /// Get an environment variable (supports both Erlang and JavaScript targets)
 ///
